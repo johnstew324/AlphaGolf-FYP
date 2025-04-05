@@ -1,0 +1,353 @@
+{
+    "core_features": [
+      "avg_finish_history",
+      "last5_score",
+      "cuts_made",
+      "history_sg_short_game",
+      "par5_birdie_pct",
+      "first_year",
+      "last3_score",
+      "worst_total_score_history",
+      "top_25_pct",
+      "data_completeness",
+      "recent_finish_std",
+      "international_wins",
+      "par4_avg",
+      "recent_avg_score",
+      "top_quartile_count",
+      "top10",
+      "history_best_sg_value",
+      "win_rate",
+      "pars_pct",
+      "owgr",
+      "owgr_percentile",
+      "wins",
+      "top_10_pct",
+      "history_sg_app",
+      "top_10",
+      "back_nine_par_pct",
+      "history_sg_atg",
+      "fit_component",
+      "most_recent_position",
+      "front_nine_par_pct",
+      "strokes_gained_approach_the_green_other_value_scaled",
+      "last2_score",
+      "front_nine_birdie_pct",
+      "recent_top10",
+      "scoring_variability",
+      "consistency_ratio",
+      "top_25",
+      "score",
+      "eagles",
+      "wind_difficulty"
+    ],
+    "group_representatives": {
+      "group_1": [
+        "cuts_made", 
+        "cuts_made_pct"
+      ],
+      "group_2": [
+        "history_sg_p",
+        "history_sg_short_game"
+      ],
+      "group_3": [
+        "history_sg_app",
+        "history_sg_app_pct"
+      ],
+      "group_4": [
+        "first_to_last_diff",
+        "score_trend"
+      ],
+      "group_5": [
+        "win_rate",
+        "career_win_rate"
+      ],
+      "group_6": [
+        "most_recent_position"
+      ],
+      "group_7": [
+        "history_best_sg_value"
+      ],
+      "group_8": [
+        "last1_score"
+      ],
+      "group_9": [
+        "last5_score"
+      ],
+      "group_10": [
+        "worst_total_score_history"
+      ]
+    },
+    "target_specific_features": {
+      "win": [
+        "career_win_rate",
+        "career_success_score",
+        "birdies_per_round",
+        "approach_rank_best"
+      ],
+      "cut": [
+        "cuts_made_pct",
+        "career_cuts_made_pct", 
+        "bogeys_per_round",
+        "pars_pct",
+        "approach_rank_avg"
+      ],
+      "top3": [
+        "recent_top5",
+        "top_5_finishes",
+        "birdies_per_round",
+        "approach_rank_best",
+        "career_win_rate"
+      ],
+      "top10": [
+        "career_top10_rate",
+        "career_top_10_pct",
+        "avg_finish_history",
+        "birdies_per_round",
+        "pars_pct"
+      ]
+    },
+    "interaction_features": {
+      "interaction_history_sg_app_approach_rank_best": {
+        "feature1": "history_sg_app",
+        "feature2": "approach_rank_best",
+        "type": "product"
+      },
+      "interaction_history_sg_app_strokes_gained_approach_the_green_other_value_scaled": {
+        "feature1": "history_sg_app",
+        "feature2": "strokes_gained_approach_the_green_other_value_scaled",
+        "type": "product"
+      },
+      "interaction_history_sg_app_fit_component": {
+        "feature1": "history_sg_app",
+        "feature2": "fit_component",
+        "type": "product"
+      },
+      "interaction_history_sg_short_game_approach_rank_best": {
+        "feature1": "history_sg_short_game",
+        "feature2": "approach_rank_best",
+        "type": "product"
+      },
+      "interaction_history_sg_short_game_strokes_gained_approach_the_green_other_value_scaled": {
+        "feature1": "history_sg_short_game",
+        "feature2": "strokes_gained_approach_the_green_other_value_scaled",
+        "type": "product"
+      },
+      "interaction_history_sg_short_game_fit_component": {
+        "feature1": "history_sg_short_game",
+        "feature2": "fit_component",
+        "type": "product"
+      },
+      "interaction_history_sg_atg_approach_rank_best": {
+        "feature1": "history_sg_atg",
+        "feature2": "approach_rank_best",
+        "type": "product"
+      },
+      "interaction_history_sg_atg_strokes_gained_approach_the_green_other_value_scaled": {
+        "feature1": "history_sg_atg",
+        "feature2": "strokes_gained_approach_the_green_other_value_scaled",
+        "type": "product"
+      },
+      "interaction_history_sg_atg_fit_component": {
+        "feature1": "history_sg_atg",
+        "feature2": "fit_component",
+        "type": "product"
+      },
+      "interaction_fit_component_wind_difficulty": {
+        "feature1": "fit_component",
+        "feature2": "wind_difficulty",
+        "type": "product"
+      },
+      "interaction_owgr_fit_component": {
+        "feature1": "owgr",
+        "feature2": "fit_component",
+        "type": "product"
+      }
+    },
+    "optimized_sets": {
+      "win": [
+        "player_id",
+        "tournament_id",
+        "last5_score",
+        "par5_birdie_pct",
+        "history_sg_short_game",
+        "first_year",
+        "last3_score",
+        "top_25_pct",
+        "recent_finish_std",
+        "international_wins",
+        "par4_avg",
+        "recent_avg_score",
+        "top_quartile_count",
+        "top10",
+        "history_best_sg_value",
+        "win_rate",
+        "wins",
+        "top_10_pct",
+        "history_sg_app",
+        "top_10",
+        "back_nine_par_pct",
+        "history_sg_atg",
+        "most_recent_position",
+        "front_nine_par_pct",
+        "last2_score",
+        "front_nine_birdie_pct",
+        "recent_top10",
+        "scoring_variability",
+        "top_25",
+        "score",
+        "eagles",
+        "owgr",
+        "owgr_percentile",
+        "fit_component",
+        "strokes_gained_approach_the_green_other_value_scaled",
+        "wind_difficulty",
+        "career_win_rate",
+        "consistency_ratio",
+        "data_completeness",
+        "worst_total_score_history",
+        "cuts_made",
+        "birdies_per_round",
+        "approach_rank_best"
+      ],
+      "cut": [
+        "player_id",
+        "tournament_id",
+        "last5_score",
+        "par5_birdie_pct",
+        "history_sg_short_game",
+        "first_year",
+        "last3_score",
+        "top_25_pct",
+        "recent_finish_std",
+        "par4_avg",
+        "recent_avg_score",
+        "top_quartile_count",
+        "top10",
+        "history_best_sg_value",
+        "wins",
+        "top_10_pct",
+        "history_sg_app",
+        "top_10",
+        "back_nine_par_pct",
+        "history_sg_atg",
+        "most_recent_position",
+        "front_nine_par_pct",
+        "last2_score",
+        "front_nine_birdie_pct",
+        "recent_top10",
+        "scoring_variability",
+        "top_25",
+        "score",
+        "eagles",
+        "owgr",
+        "owgr_percentile",
+        "fit_component",
+        "strokes_gained_approach_the_green_other_value_scaled",
+        "wind_difficulty",
+        "consistency_ratio",
+        "data_completeness",
+        "worst_total_score_history",
+        "cuts_made",
+        "cuts_made_pct",
+        "pars_pct",
+        "bogeys_per_round",
+        "approach_rank_avg",
+        "career_cuts_made_pct"
+      ],
+      "top3": [
+        "player_id",
+        "tournament_id",
+        "last5_score",
+        "par5_birdie_pct",
+        "history_sg_short_game",
+        "first_year",
+        "last3_score",
+        "top_25_pct",
+        "recent_finish_std",
+        "international_wins",
+        "par4_avg",
+        "recent_avg_score",
+        "top_quartile_count",
+        "top10",
+        "history_best_sg_value",
+        "win_rate",
+        "wins",
+        "top_10_pct",
+        "history_sg_app",
+        "top_10",
+        "back_nine_par_pct",
+        "history_sg_atg",
+        "most_recent_position",
+        "front_nine_par_pct",
+        "last2_score",
+        "front_nine_birdie_pct",
+        "recent_top10",
+        "scoring_variability",
+        "top_25",
+        "score",
+        "eagles",
+        "owgr",
+        "owgr_percentile",
+        "fit_component",
+        "strokes_gained_approach_the_green_other_value_scaled",
+        "wind_difficulty",
+        "career_win_rate",
+        "consistency_ratio",
+        "data_completeness",
+        "worst_total_score_history",
+        "cuts_made",
+        "birdies_per_round",
+        "approach_rank_best",
+        "recent_top5",
+        "top_5_finishes"
+      ],
+      "top10": [
+        "player_id",
+        "tournament_id",
+        "last5_score",
+        "par5_birdie_pct",
+        "history_sg_short_game",
+        "first_year",
+        "last3_score",
+        "top_25_pct",
+        "recent_finish_std",
+        "international_wins",
+        "par4_avg",
+        "recent_avg_score",
+        "top_quartile_count",
+        "top10",
+        "history_best_sg_value",
+        "win_rate",
+        "wins",
+        "top_10_pct",
+        "history_sg_app",
+        "top_10",
+        "back_nine_par_pct",
+        "history_sg_atg",
+        "most_recent_position",
+        "front_nine_par_pct",
+        "last2_score",
+        "front_nine_birdie_pct",
+        "recent_top10",
+        "scoring_variability",
+        "top_25",
+        "score",
+        "eagles",
+        "owgr",
+        "owgr_percentile",
+        "fit_component",
+        "strokes_gained_approach_the_green_other_value_scaled",
+        "wind_difficulty",
+        "consistency_ratio",
+        "data_completeness",
+        "worst_total_score_history",
+        "cuts_made",
+        "career_top10_rate",
+        "career_top_10_pct",
+        "avg_finish_history",
+        "birdies_per_round",
+        "pars_pct"
+      ]
+    }
+  }

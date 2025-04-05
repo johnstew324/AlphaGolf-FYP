@@ -1,0 +1,10 @@
+{
+  "train_tournaments": [
+    "R2025016",
+    "R2024016"
+  ],
+  "test_tournaments": [
+    "R2024003"
+  ],
+  "timestamp": "20250405_192434"
+}
