@@ -1,0 +1,132 @@
+2025-04-06 19:24:28,901 - INFO - Starting winners feature pipeline
+2025-04-06 19:24:28,901 - INFO - Loading data from feature_analysis/predictive_features.csv
+2025-04-06 19:24:29,248 - INFO - Loaded 24430 rows and 249 columns
+2025-04-06 19:24:29,248 - INFO - Dataset contains 113 tournaments and 250 players
+2025-04-06 19:24:29,265 - INFO - Found 2550 winners in the dataset (based on wins_current)
+2025-04-06 19:24:29,266 - INFO - Creating target variables
+2025-04-06 19:24:29,267 - INFO - Created winner target variable from wins_current
+2025-04-06 19:24:29,270 - ERROR - Pipeline execution failed: 'finish_position_std_scaled'
+2025-04-06 19:24:29,277 - ERROR - Traceback (most recent call last):
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'finish_position_std_scaled'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 368, in run
+    self.create_target_variables()
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 190, in create_target_variables
+    winner_positions = winners['finish_position_std_scaled'].unique()
+                       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'finish_position_std_scaled'
+
+2025-04-06 19:28:28,283 - INFO - Starting winners feature pipeline
+2025-04-06 19:28:28,283 - INFO - Loading data from feature_analysis/predictive_features.csv
+2025-04-06 19:28:28,630 - INFO - Loaded 24430 rows and 249 columns
+2025-04-06 19:28:28,630 - INFO - Dataset contains 113 tournaments and 250 players
+2025-04-06 19:28:28,637 - INFO - Found 2550 winners in the dataset (based on wins_current)
+2025-04-06 19:28:28,637 - INFO - Creating target variables
+2025-04-06 19:28:28,637 - INFO - Created winner target variable from wins_current
+2025-04-06 19:28:28,646 - ERROR - Pipeline execution failed: 'finish_position_std_scaled'
+2025-04-06 19:28:28,650 - ERROR - Traceback (most recent call last):
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'finish_position_std_scaled'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 383, in run
+    self.create_target_variables()
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 205, in create_target_variables
+    winner_positions = winners['finish_position_std_scaled'].unique()
+                       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'finish_position_std_scaled'
+
+2025-04-06 19:28:43,722 - INFO - Starting winners feature pipeline
+2025-04-06 19:28:43,722 - INFO - Loading data from feature_analysis/predictive_features.csv
+2025-04-06 19:28:44,067 - INFO - Loaded 24430 rows and 249 columns
+2025-04-06 19:28:44,067 - INFO - Dataset contains 113 tournaments and 250 players
+2025-04-06 19:28:44,083 - INFO - Found 2550 winners in the dataset (based on wins_current)
+2025-04-06 19:28:44,083 - INFO - Creating target variables
+2025-04-06 19:28:44,089 - INFO - Created winner target variable from wins_current
+2025-04-06 19:28:44,094 - ERROR - Pipeline execution failed: 'finish_position_std_scaled'
+2025-04-06 19:28:44,097 - ERROR - Traceback (most recent call last):
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'finish_position_std_scaled'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 382, in run
+    self.create_target_variables()
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 204, in create_target_variables
+    winner_positions = winners['finish_position_std_scaled'].unique()
+                       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'finish_position_std_scaled'
+
+2025-04-06 19:29:00,714 - INFO - Starting winners feature pipeline
+2025-04-06 19:29:00,714 - INFO - Loading data from feature_analysis/predictive_features.csv
+2025-04-06 19:29:01,043 - INFO - Loaded 24430 rows and 249 columns
+2025-04-06 19:29:01,058 - INFO - Dataset contains 113 tournaments and 250 players
+2025-04-06 19:29:01,058 - INFO - Found 2550 winners in the dataset (based on wins_current)
+2025-04-06 19:29:01,058 - INFO - Creating target variables
+2025-04-06 19:29:01,066 - INFO - Created winner target variable from wins_current
+2025-04-06 19:29:01,071 - ERROR - Pipeline execution failed: 'finish_position_std_scaled'
+2025-04-06 19:29:01,074 - ERROR - Traceback (most recent call last):
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas\\_libs\\hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'finish_position_std_scaled'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 383, in run
+    self.create_target_variables()
+  File "c:\Users\johns\OneDrive\Desktop\AlphaGolf\AlphaGolf\src\feature_engineering\winners_pipeline.py", line 205, in create_target_variables
+    winner_positions = winners['finish_position_std_scaled'].unique()
+                       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\johns\OneDrive\Desktop\AlphaGolf\venv\Lib\site-packages\pandas\core\indexes\base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'finish_position_std_scaled'
+

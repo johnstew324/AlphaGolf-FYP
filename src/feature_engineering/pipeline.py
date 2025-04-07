@@ -1,6 +1,13 @@
 # feature_engineering/pipeline.py
 import pandas as pd
 import numpy as np
+import os
+import sys
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 from .processors.player_stats_processor import PlayerFormProcessor
 from .processors.course_fit_processor import CourseFitProcessor
 from .processors.tournament_history_processor import TournamentHistoryProcessor
@@ -86,41 +93,22 @@ class FeaturePipeline:
         return features
     
     def _combine_features(self, *feature_sets):
-        """
-        Combine multiple feature sets into a single DataFrame.
-        
-        Args:
-            *feature_sets: Multiple DataFrames to combine
-            
-        Returns:
-            Combined DataFrame
-        """
         # Start with an empty result
         result = None
         
-        for features in feature_sets:
+        for i, features in enumerate(feature_sets):
             if features is None or features.empty:
+                print(f"Feature set {i} is empty or None")
                 continue
                 
-            # Ensure the features DataFrame has player_id column
-            if 'player_id' not in features.columns:
-                print(f"Warning: Feature set missing player_id column, skipping")
-                continue
-                
-            if result is None:
-                # First non-empty DataFrame becomes the base
-                result = features.copy()
-            else:
-                # Merge with existing results on player_id
-                try:
-                    result = pd.merge(result, features, on='player_id', how='outer')
-                except Exception as e:
-                    print(f"Error merging feature sets: {str(e)}")
-                    # Print column information for debugging
-                    print(f"Left columns: {result.columns.tolist()}")
-                    print(f"Right columns: {features.columns.tolist()}")
-        
-        return result if result is not None else pd.DataFrame()
+            # Log feature set details before merging
+            print(f"Feature set {i}: {features.shape} columns, example columns: {list(features.columns)[:5]}")
+            
+            # Rest of your existing code...
+            
+            # Log after merging
+            if result is not None:
+                print(f"After merge {i}: {result.shape} columns")
     
     def generate_target_variables(self, tournament_id, player_ids=None):
         """

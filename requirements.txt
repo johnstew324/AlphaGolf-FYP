@@ -1,0 +1,11 @@
+numpy
+pandas
+pymongo
+pydantic
+scikit-learn
+matplotlib
+seaborn
+dotenv
+
+tensorflow
+argparse

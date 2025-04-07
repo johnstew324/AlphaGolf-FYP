@@ -1,40 +1,40 @@
 # Feature Analysis Report
-- Total features: 1360
-- Total samples: 27
+- Total features: 1379
+- Total samples: 24430
 
 ## Basic Statistics Summary
-- Features with low variance: 213
+- Features with low variance: 167
 
 ## Feature Correlation Summary
-- Highly correlated feature pairs: 36118
+- Highly correlated feature pairs: 17153
 
 ### Top 10 Highly Correlated Pairs:
-- scoring_final_round_scoring_average ↔ wins_current: 1.000
-- scoring_final_round_scoring_average_total_strokes ↔ wins_current: 1.000
-- scoring_round_3_scoring_average ↔ wins_current: -1.000
-- scoring_round_3_scoring_average_total_strokes ↔ wins_current: -1.000
-- scoring_round_4_scoring_average ↔ wins_current: 1.000
-- scoring_round_4_scoring_average_total_strokes ↔ wins_current: 1.000
-- scoring_early_scoring_average ↔ wins_current: 1.000
-- scoring_par_3_scoring_average ↔ wins_current: 1.000
-- scoring_scoring_average_adjusted ↔ wins_current: -1.000
-- scoring_back_9_scoring_average ↔ wins_current: -1.000
+- snapshot_fedexcup_champion ↔ strokes_gained_off_the_tee_par_5_value: -1.000
+- snapshot_fedexcup_champion ↔ strokes_gained_off_the_tee_par_4_value: -1.000
+- snapshot_fedexcup_champion ↔ off_tee_avg: -1.000
+- snapshot_fedexcup_champion ↔ off_tee_best: -1.000
+- snapshot_fedexcup_champion ↔ off_tee_worst: -1.000
+- top10 ↔ top10_scaled: 1.000
+- top25 ↔ top25_scaled: 1.000
+- has_current_form_scaled ↔ has_scorecard_data_scaled: 1.000
+- has_history_stats_scaled ↔ has_scorecard_data_scaled: 1.000
+- has_scorecard_data ↔ has_current_form_scaled: 1.000
 
 ## Missing Values Summary
-- Features with >50% missing values: 102
+- Features with >50% missing values: 658
 - Potential special case players (e.g., LIV/retired): 0
 
 ### Top 10 Features with Most Missing Values:
-- scoring_scoring_average_adjusted_total_strokes: 100.0%
-- par5_to_par_x: 100.0%
-- par4_to_par_x: 100.0%
+- history_worst_sg_category_numeric: 100.0%
 - par3_to_par_x: 100.0%
-- course_yards_per_par: 100.0%
-- course_overview_yardage: 100.0%
-- course_yardage: 100.0%
-- total_score_std_form: 100.0%
-- score_std_form: 100.0%
-- yards_per_par: 100.0%
+- par4_to_par_x: 100.0%
+- par5_to_par_x: 100.0%
+- history_best_sg_category_numeric: 100.0%
+- table_national_teams: 100.0%
+- driving_driving_distance___all_drives_total_distance: 100.0%
+- table_playoff_record: 100.0%
+- table_international_wins: 100.0%
+- yardage: 100.0%
 
 ## Feature Importance Summary
 
@@ -42,30 +42,30 @@
 
 | Group | Feature Count | Missing % |
 | ----- | ------------- | --------- |
-| player_performance | 283 | 14.7% |
-| course_characteristics | 248 | 6.0% |
-| tournament_history | 91 | 11.6% |
-| recent_form | 51 | 11.3% |
-| consistency | 64 | 16.4% |
-| career | 84 | 6.5% |
-| weather | 21 | 0.0% |
-| meta_features | 15 | 9.6% |
-| uncategorized | 566 | 13.6% |
+| player_performance | 288 | 37.5% |
+| course_characteristics | 248 | 82.2% |
+| tournament_history | 113 | 35.2% |
+| recent_form | 54 | 49.9% |
+| consistency | 64 | 44.3% |
+| career | 87 | 9.6% |
+| weather | 27 | 32.2% |
+| meta_features | 15 | 30.6% |
+| uncategorized | 557 | 43.8% |
 
 ## Feature Selection Recommendations
 
 ### Consider Removing Low Variance Features:
-- season
-- scoring_par_breakers
 - scoring_par_3_scoring_average
 - scoring_par_4_scoring_average
-- scoring_par_5_scoring_average
-- driving_driving_accuracy_percentage
 - putting_putting_average
 - putting_overall_putting_average
-- putting_one_putt_percentage
-- putting_3_putt_avoidance
-- ... and 203 more
+- career_top_10_pct
+- has_performance_data
+- has_tournament_history
+- has_tournament_history_stats
+- win_rate
+- cut_consistency
+- ... and 157 more
 
 ### Consider Removing Redundant Features from Correlated Groups:
 
@@ -97,10 +97,10 @@ Group 1:
 - achievement_year_joined_tour
 - achievement_year_joined_tour_scaled
 - appearances
-- appearances_form
-- appearances_form_scaled
-- appearances_history
-- appearances_history_scaled
+- appearances_form_interaction
+- appearances_form_interaction_scaled
+- appearances_history_interaction
+- appearances_history_interaction_scaled
 - appearances_scaled
 - approach_avg
 - approach_avg_scaled
@@ -155,10 +155,10 @@ Group 1:
 - avg_field_size
 - avg_field_size_scaled
 - avg_finish
-- avg_finish_form
-- avg_finish_form_scaled
-- avg_finish_history
-- avg_finish_history_scaled
+- avg_finish_form_interaction
+- avg_finish_form_interaction_scaled
+- avg_finish_history_interaction
+- avg_finish_history_interaction_scaled
 - avg_finish_position
 - avg_finish_position_scaled
 - avg_finish_scaled
@@ -178,31 +178,33 @@ Group 1:
 - avg_precip_scaled
 - avg_precipprob
 - avg_precipprob_scaled
-- avg_recent_score
-- avg_recent_score_scaled
+- avg_recent_score_temporal
+- avg_recent_score_temporal_scaled
 - avg_round_score
 - avg_round_score_scaled
 - avg_rounds_played
-- avg_rounds_played_form
-- avg_rounds_played_form_scaled
-- avg_rounds_played_history
-- avg_rounds_played_history_scaled
+- avg_rounds_played_form_interaction
+- avg_rounds_played_form_interaction_scaled
+- avg_rounds_played_history_interaction
+- avg_rounds_played_history_interaction_scaled
 - avg_rounds_played_scaled
 - avg_score_to_par
 - avg_score_to_par_5
-- avg_score_to_par_form
-- avg_score_to_par_history
+- avg_score_to_par_form_interaction
+- avg_score_to_par_history_interaction
 - avg_sg_value
 - avg_sg_value_scaled
+- avg_temp
+- avg_temp_scaled
 - avg_tempmax
 - avg_tempmax_scaled
 - avg_tempmin
 - avg_tempmin_scaled
 - avg_total_score
-- avg_total_score_form
-- avg_total_score_form_scaled
-- avg_total_score_history
-- avg_total_score_history_scaled
+- avg_total_score_form_interaction
+- avg_total_score_form_interaction_scaled
+- avg_total_score_history_interaction
+- avg_total_score_history_interaction_scaled
 - avg_total_score_scaled
 - avg_windgust
 - avg_windgust_scaled
@@ -218,15 +220,14 @@ Group 1:
 - back_nine_bogey_pct_scaled
 - back_nine_difficulty
 - back_nine_difficulty_scaled
-- back_nine_par_pct
 - back_nine_to_par
 - best_back_nine
 - best_back_nine_scaled
 - best_finish
-- best_finish_form
-- best_finish_form_scaled
-- best_finish_history
-- best_finish_history_scaled
+- best_finish_form_interaction
+- best_finish_form_interaction_scaled
+- best_finish_history_interaction
+- best_finish_history_interaction_scaled
 - best_finish_position
 - best_finish_position_scaled
 - best_finish_scaled
@@ -236,13 +237,13 @@ Group 1:
 - best_round_score_scaled
 - best_score_to_par
 - best_score_to_par_5
-- best_score_to_par_form
-- best_score_to_par_history
+- best_score_to_par_form_interaction
+- best_score_to_par_history_interaction
 - best_total_score
-- best_total_score_form
-- best_total_score_form_scaled
-- best_total_score_history
-- best_total_score_history_scaled
+- best_total_score_form_interaction
+- best_total_score_form_interaction_scaled
+- best_total_score_history_interaction
+- best_total_score_history_interaction_scaled
 - best_total_score_scaled
 - best_winning_score
 - best_winning_score_scaled
@@ -258,9 +259,12 @@ Group 1:
 - bogeys_per_round
 - bogeys_per_round_scaled
 - bogeys_scaled
+- bunker_play_avg
+- bunker_play_avg_scaled
 - career_cut_pct
 - career_cut_pct_scaled
 - career_cuts_made
+- career_cuts_made_1_scaled
 - career_cuts_made_2_scaled
 - career_cuts_made_pct
 - career_cuts_made_pct_scaled
@@ -270,6 +274,7 @@ Group 1:
 - career_earnings
 - career_earnings_scaled
 - career_events
+- career_events_1_scaled
 - career_events_2_scaled
 - career_events_scaled
 - career_official_money
@@ -278,9 +283,10 @@ Group 1:
 - career_seconds_scaled
 - career_span
 - career_span_scaled
+- career_success_rating_numeric
 - career_success_score
-- career_success_score_percentile
-- career_success_score_percentile_scaled
+- career_success_score_percentile_interaction
+- career_success_score_percentile_interaction_scaled
 - career_success_score_scaled
 - career_thirds
 - career_thirds_scaled
@@ -302,126 +308,130 @@ Group 1:
 - career_top_25_pct
 - career_top_25_pct_scaled
 - career_top_25_scaled
-- career_win_rate
-- career_win_rate_scaled
 - career_wins
-- career_wins_2_scaled
 - career_wins_scaled
 - consistency_ratio
-- consistency_ratio_form
-- consistency_ratio_form_scaled
-- consistency_ratio_history
-- consistency_ratio_history_scaled
+- consistency_ratio_form_interaction
+- consistency_ratio_form_interaction_scaled
+- consistency_ratio_history_interaction
+- consistency_ratio_history_interaction_scaled
 - consistency_ratio_scaled
 - course_age
-- course_avg_difficulty
-- course_avg_pin_bottom_to_top_x
-- course_avg_pin_bottom_to_top_y
-- course_avg_pin_left_to_right_x
-- course_avg_pin_left_to_right_y
-- course_back_nine_difficulty
-- course_birdies_pct
-- course_bogeys_pct
-- course_course_age
-- course_course_id
-- course_course_record
-- course_difficulty_range
-- course_difficulty_std
-- course_difficulty_trend
-- course_doubles_pct
-- course_eagles_pct
-- course_easiest_holes_avg
-- course_final_rd_over_par_diff
-- course_final_rd_under_par_diff
-- course_first_to_final_diff
+- course_avg_difficulty_interaction
+- course_avg_pin_bottom_to_top_x_interaction
+- course_avg_pin_bottom_to_top_y_interaction
+- course_avg_pin_left_to_right_x_interaction
+- course_avg_pin_left_to_right_y_interaction
+- course_back_nine_difficulty_interaction
+- course_birdies_pct_interaction
+- course_bogeys_pct_interaction
+- course_course_age_interaction
+- course_course_id_interaction
+- course_course_record_interaction
+- course_difficulty_range_interaction
+- course_difficulty_std_interaction
+- course_difficulty_trend_interaction
+- course_doubles_pct_interaction
+- course_eagles_pct_interaction
+- course_easiest_holes_avg_interaction
+- course_final_rd_over_par_diff_interaction
+- course_final_rd_under_par_diff_interaction
+- course_first_to_final_diff_interaction
 - course_fit_score
-- course_front_nine_difficulty
-- course_hardest_holes_avg
+- course_front_nine_difficulty_interaction
+- course_hardest_holes_avg_interaction
 - course_history_rating_numeric
 - course_history_score
 - course_id
-- course_nine_difficulty_diff
-- course_overview_established
-- course_overview_par
-- course_overview_record
-- course_par
-- course_par3_avg_length
-- course_par3_birdies
-- course_par3_birdies_pct
-- course_par3_bogeys
-- course_par3_bogeys_pct
-- course_par3_count
-- course_par3_differential
-- course_par3_double_bogeys
-- course_par3_double_bogeys_pct
-- course_par3_eagles
-- course_par3_pars
-- course_par3_pars_pct
-- course_par3_scoring_avg
-- course_par3_to_par
-- course_par4_avg_length
-- course_par4_birdies
-- course_par4_birdies_pct
-- course_par4_bogeys
-- course_par4_bogeys_pct
-- course_par4_count
-- course_par4_double_bogeys
-- course_par4_double_bogeys_pct
-- course_par4_eagles
-- course_par4_eagles_pct
-- course_par4_pars
-- course_par4_pars_pct
-- course_par4_scoring_avg
-- course_par4_to_par
-- course_par5_avg_length
-- course_par5_birdies
-- course_par5_bogeys
-- course_par5_double_bogeys
-- course_par5_eagles
-- course_par5_pars
-- course_par5_scoring_advantage
-- course_par5_scoring_avg
-- course_par5_to_par
-- course_pars_pct
-- course_pin_bottom_to_top_x_difficulty_corr
-- course_pin_bottom_to_top_x_std
-- course_pin_bottom_to_top_y_difficulty_corr
-- course_pin_bottom_to_top_y_std
-- course_pin_left_to_right_x_difficulty_corr
-- course_pin_left_to_right_x_std
-- course_pin_left_to_right_y_difficulty_corr
-- course_pin_left_to_right_y_std
+- course_nine_difficulty_diff_interaction
+- course_overview_established_interaction
+- course_overview_par_interaction
+- course_overview_record_interaction
+- course_par3_avg_length_interaction
+- course_par3_birdies_interaction
+- course_par3_birdies_pct_interaction
+- course_par3_bogeys_interaction
+- course_par3_bogeys_pct_interaction
+- course_par3_count_interaction
+- course_par3_differential_interaction
+- course_par3_double_bogeys_interaction
+- course_par3_double_bogeys_pct_interaction
+- course_par3_eagles_interaction
+- course_par3_eagles_pct_interaction
+- course_par3_pars_interaction
+- course_par3_pars_pct_interaction
+- course_par3_scoring_avg_interaction
+- course_par3_to_par_interaction
+- course_par4_avg_length_interaction
+- course_par4_birdies_interaction
+- course_par4_birdies_pct_interaction
+- course_par4_bogeys_interaction
+- course_par4_bogeys_pct_interaction
+- course_par4_count_interaction
+- course_par4_double_bogeys_interaction
+- course_par4_double_bogeys_pct_interaction
+- course_par4_eagles_interaction
+- course_par4_eagles_pct_interaction
+- course_par4_pars_interaction
+- course_par4_pars_pct_interaction
+- course_par4_scoring_avg_interaction
+- course_par4_to_par_interaction
+- course_par5_avg_length_interaction
+- course_par5_birdies_interaction
+- course_par5_birdies_pct_interaction
+- course_par5_bogeys_interaction
+- course_par5_bogeys_pct_interaction
+- course_par5_count_interaction
+- course_par5_double_bogeys_interaction
+- course_par5_double_bogeys_pct_interaction
+- course_par5_eagles_interaction
+- course_par5_eagles_pct_interaction
+- course_par5_pars_interaction
+- course_par5_pars_pct_interaction
+- course_par5_scoring_advantage_interaction
+- course_par5_scoring_avg_interaction
+- course_par5_to_par_interaction
+- course_par_interaction
+- course_pars_pct_interaction
+- course_pin_bottom_to_top_x_difficulty_corr_interaction
+- course_pin_bottom_to_top_x_std_interaction
+- course_pin_bottom_to_top_y_difficulty_corr_interaction
+- course_pin_bottom_to_top_y_std_interaction
+- course_pin_left_to_right_x_difficulty_corr_interaction
+- course_pin_left_to_right_x_std_interaction
+- course_pin_left_to_right_y_difficulty_corr_interaction
+- course_pin_left_to_right_y_std_interaction
 - course_record
-- course_scoring_difficulty
-- course_summary_birdies
-- course_summary_bogeys
-- course_summary_double_bogeys
-- course_summary_eagles
-- course_summary_pars
-- course_summary_round1_birdies
-- course_summary_round1_bogeys
-- course_summary_round1_double_bogeys
-- course_summary_round1_eagles
-- course_summary_round1_pars
-- course_summary_round2_birdies
-- course_summary_round2_bogeys
-- course_summary_round2_double_bogeys
-- course_summary_round2_eagles
-- course_summary_round2_pars
-- course_summary_round3_birdies
-- course_summary_round3_bogeys
-- course_summary_round3_double_bogeys
-- course_summary_round3_eagles
-- course_summary_round3_pars
-- course_summary_round4_birdies
-- course_summary_round4_bogeys
-- course_summary_round4_double_bogeys
-- course_summary_round4_eagles
-- course_summary_round4_pars
-- course_summary_total_par
-- course_summary_total_yards
-- course_under_over_ratio
-- course_win_history
+- course_scoring_difficulty_interaction
+- course_summary_birdies_interaction
+- course_summary_bogeys_interaction
+- course_summary_double_bogeys_interaction
+- course_summary_eagles_interaction
+- course_summary_pars_interaction
+- course_summary_round1_birdies_interaction
+- course_summary_round1_bogeys_interaction
+- course_summary_round1_double_bogeys_interaction
+- course_summary_round1_eagles_interaction
+- course_summary_round1_pars_interaction
+- course_summary_round2_birdies_interaction
+- course_summary_round2_bogeys_interaction
+- course_summary_round2_double_bogeys_interaction
+- course_summary_round2_eagles_interaction
+- course_summary_round2_pars_interaction
+- course_summary_round3_birdies_interaction
+- course_summary_round3_bogeys_interaction
+- course_summary_round3_double_bogeys_interaction
+- course_summary_round3_eagles_interaction
+- course_summary_round3_pars_interaction
+- course_summary_round4_birdies_interaction
+- course_summary_round4_bogeys_interaction
+- course_summary_round4_double_bogeys_interaction
+- course_summary_round4_eagles_interaction
+- course_summary_round4_pars_interaction
+- course_summary_total_par_interaction
+- course_summary_total_yards_interaction
+- course_under_over_ratio_interaction
+- course_year_interaction
 - current_cut_pct
 - current_cut_pct_scaled
 - current_top10_pct
@@ -433,15 +443,12 @@ Group 1:
 - cuts_made_count
 - cuts_made_current
 - cuts_made_current_scaled
-- cuts_made_form
-- cuts_made_form_scaled
-- cuts_made_history
-- cuts_made_history_scaled
-- cuts_made_pct
+- cuts_made_form_interaction
+- cuts_made_form_interaction_scaled
+- cuts_made_history_interaction
+- cuts_made_history_interaction_scaled
 - cuts_made_pct_1_scaled
-- cuts_made_pct_form
-- cuts_made_pct_form_scaled
-- cuts_made_pct_scaled
+- cuts_made_pct_history_interaction_scaled
 - cuts_made_ratio
 - cuts_made_scaled
 - cuts_made_total
@@ -460,12 +467,12 @@ Group 1:
 - driving_distance_from_edge_of_fairway_rank
 - driving_distance_from_edge_of_fairway_rank_scaled
 - driving_distance_from_edge_of_fairway_scaled
-- driving_driving_accuracy_percentage
+- driving_distance_from_edge_of_fairway_total_distance_(feet)
+- driving_distance_from_edge_of_fairway_total_distance_(feet)_scaled
 - driving_driving_accuracy_percentage_fairways_hit
 - driving_driving_accuracy_percentage_fairways_hit_scaled
 - driving_driving_accuracy_percentage_rank
 - driving_driving_accuracy_percentage_rank_scaled
-- driving_driving_accuracy_percentage_scaled
 - driving_driving_distance
 - driving_driving_distance___all_drives
 - driving_driving_distance___all_drives_rank
@@ -474,12 +481,10 @@ Group 1:
 - driving_driving_distance_rank
 - driving_driving_distance_rank_scaled
 - driving_driving_distance_scaled
-- eagles
+- driving_driving_distance_total_distance
+- driving_driving_distance_total_distance_scaled
 - eagles_pct
 - eagles_pct_scaled
-- eagles_per_round
-- eagles_per_round_scaled
-- eagles_scaled
 - earnings
 - earnings_scaled
 - easiest_holes_avg
@@ -489,31 +494,32 @@ Group 1:
 - events_current
 - events_current_scaled
 - events_scaled
-- experience_level_numeric
 - fairway_approach_avg
 - fairway_approach_avg_scaled
+- feature_year_scaled
+- fedex_fall_rank
 - fedex_fall_rank_scaled
 - fedex_fall_total
 - fedex_fall_total_scaled
 - feels_like
 - feels_like_scaled
-- field_strength_score
-- field_strength_score_scaled
+- field_strength_score_interaction
+- field_strength_score_interaction_scaled
 - final_rd_over_par_diff
 - final_rd_under_par_diff
 - finish_position_std
 - finish_position_std_scaled
-- finish_std_history
-- finish_std_history_scaled
+- finish_std_history_interaction
+- finish_std_history_interaction_scaled
 - first_to_final_diff
 - first_year
-- first_year_played_history
-- fit_component
-- fit_component_scaled
-- form_component
-- form_component_scaled
-- fringe_play_avg
-- fringe_play_avg_scaled
+- first_year_played
+- first_year_played_form_interaction
+- first_year_played_history_interaction
+- fit_component_interaction
+- fit_component_interaction_scaled
+- form_component_interaction
+- form_component_interaction_scaled
 - front_nine_avg
 - front_nine_avg_scaled
 - front_nine_birdie_pct
@@ -528,23 +534,36 @@ Group 1:
 - gust_differential_scaled
 - hardest_holes_avg
 - hardest_holes_avg_scaled
-- has_career_data_scaled
+- has_course_fit
+- has_current_form
 - has_current_form_scaled
+- has_history_stats
 - has_history_stats_scaled
 - has_performance_data_scaled
+- has_scorecard_data
 - has_scorecard_data_scaled
+- has_weather_data
+- has_weather_data_scaled
 - heat_index
 - heat_index_scaled
-- history_sg_app
-- history_sg_app_scaled
+- history_best_sg_value
+- history_best_sg_value_scaled
+- history_sg_app_pct
+- history_sg_app_pct_scaled
 - history_sg_atg
+- history_sg_atg_pct
+- history_sg_atg_pct_scaled
 - history_sg_atg_scaled
 - history_sg_differential
 - history_sg_differential_scaled
-- history_sg_long_game
-- history_sg_long_game_scaled
-- history_sg_ott
-- history_sg_ott_scaled
+- history_sg_ott_pct
+- history_sg_ott_pct_scaled
+- history_sg_p
+- history_sg_p_pct
+- history_sg_p_pct_scaled
+- history_sg_p_scaled
+- history_sg_short_game
+- history_sg_short_game_scaled
 - history_sg_tot
 - history_sg_tot_scaled
 - history_worst_sg_value
@@ -554,34 +573,29 @@ Group 1:
 - international_wins
 - international_wins_scaled
 - last1_position_numeric
-- last2_score
-- last2_score_scaled
+- last1_score
+- last1_score_scaled
 - last3_position_numeric
-- last3_score
-- last3_score_scaled
 - last4_position_numeric
 - last4_score
 - last4_score_scaled
-- last5_position_numeric
-- last_year_played_history
+- last5_score
+- last5_score_scaled
+- last_year
+- last_year_played
+- last_year_played_form_interaction
 - latest_cuts_made
 - latest_cuts_made_scaled
-- latest_display_season_scaled
 - latest_earnings
 - latest_earnings_scaled
 - latest_events
 - latest_events_scaled
+- latest_season
 - latest_season_scaled
-- latest_seconds
-- latest_seconds_scaled
-- latest_thirds
-- latest_thirds_scaled
 - latest_top_10
 - latest_top_10_scaled
 - latest_top_25
 - latest_top_25_scaled
-- latest_wins
-- latest_wins_scaled
 - long_putt_avg
 - long_putt_avg_scaled
 - max_birdie_streak
@@ -591,17 +605,21 @@ Group 1:
 - max_field_size
 - max_field_size_scaled
 - max_rounds_played
-- max_rounds_played_form
-- max_rounds_played_form_scaled
+- max_rounds_played_form_interaction
+- max_rounds_played_form_interaction_scaled
+- max_rounds_played_history_interaction
+- max_rounds_played_history_interaction_scaled
 - max_rounds_played_scaled
 - min_field_size
 - min_field_size_scaled
 - min_rounds_played
-- min_rounds_played_form
-- min_rounds_played_form_scaled
-- min_rounds_played_history
-- min_rounds_played_history_scaled
+- min_rounds_played_form_interaction
+- min_rounds_played_form_interaction_scaled
+- min_rounds_played_history_interaction
+- min_rounds_played_history_interaction_scaled
 - min_rounds_played_scaled
+- most_recent_position
+- most_recent_position_scaled
 - negative_sg_count
 - negative_sg_count_scaled
 - nine_difficulty_diff
@@ -620,9 +638,12 @@ Group 1:
 - off_tee_rank_best_scaled
 - off_tee_rank_worst
 - off_tee_rank_worst_scaled
+- off_tee_strengths
 - off_tee_strengths_scaled
 - off_tee_top50_count
 - off_tee_top50_count_scaled
+- off_tee_weaknesses
+- off_tee_weaknesses_scaled
 - off_tee_worst
 - off_tee_worst_scaled
 - official_money
@@ -643,12 +664,12 @@ Group 1:
 - overview_par
 - overview_record
 - owgr
-- owgr_component
-- owgr_component_scaled
-- owgr_field_strength
-- owgr_field_strength_scaled
-- owgr_percentile
-- owgr_percentile_scaled
+- owgr_component_interaction
+- owgr_component_interaction_scaled
+- owgr_field_strength_interaction
+- owgr_field_strength_interaction_scaled
+- owgr_percentile_interaction
+- owgr_percentile_interaction_scaled
 - owgr_scaled
 - owgr_score
 - owgr_score_norm
@@ -661,6 +682,7 @@ Group 1:
 - par3_birdie_pct
 - par3_birdies
 - par3_birdies_pct
+- par3_bogey_pct
 - par3_bogeys
 - par3_bogeys_pct
 - par3_count
@@ -668,7 +690,9 @@ Group 1:
 - par3_double_bogeys
 - par3_double_bogeys_pct
 - par3_eagles
+- par3_eagles_pct
 - par3_holes
+- par3_par_pct
 - par3_pars
 - par3_pars_pct
 - par3_scoring_avg
@@ -698,13 +722,19 @@ Group 1:
 - par5_avg_length
 - par5_birdie_pct
 - par5_birdies
+- par5_birdies_pct
+- par5_bogey_pct
 - par5_bogeys
+- par5_bogeys_pct
+- par5_count
 - par5_double_bogeys
-- par5_eagle_pct
+- par5_double_bogeys_pct
 - par5_eagles
+- par5_eagles_pct
 - par5_holes
 - par5_par_pct
 - par5_pars
+- par5_pars_pct
 - par5_scoring_advantage
 - par5_scoring_avg
 - par5_to_par
@@ -733,26 +763,26 @@ Group 1:
 - position_momentum_scaled
 - positive_sg_count
 - positive_sg_count_scaled
-- putting_3_putt_avoidance
 - putting_3_putt_avoidance_rank
 - putting_3_putt_avoidance_rank_scaled
-- putting_3_putt_avoidance_scaled
 - putting_3_putt_avoidance_total_3_putts
 - putting_3_putt_avoidance_total_3_putts_scaled
 - putting_average_distance_of_putts_made
 - putting_average_distance_of_putts_made_rank
 - putting_average_distance_of_putts_made_rank_scaled
 - putting_average_distance_of_putts_made_scaled
+- putting_average_distance_of_putts_made_total_dist._(inches)
+- putting_average_distance_of_putts_made_total_dist._(inches)_scaled
 - putting_avg
 - putting_avg_scaled
 - putting_best
 - putting_best_scaled
-- putting_one_putt_percentage
+- putting_bottom50_count
+- putting_bottom50_count_scaled
 - putting_one_putt_percentage_#_of_1_putts
 - putting_one_putt_percentage_#_of_1_putts_scaled
 - putting_one_putt_percentage_rank
 - putting_one_putt_percentage_rank_scaled
-- putting_one_putt_percentage_scaled
 - putting_overall_putting_average
 - putting_overall_putting_average_#_of_putts
 - putting_overall_putting_average_#_of_putts_scaled
@@ -771,10 +801,6 @@ Group 1:
 - putting_rank_best_scaled
 - putting_rank_worst
 - putting_rank_worst_scaled
-- putting_strengths
-- putting_strengths_scaled
-- putting_top50_count
-- putting_top50_count_scaled
 - putting_weaknesses
 - putting_weaknesses_scaled
 - putting_worst
@@ -784,8 +810,8 @@ Group 1:
 - raw_fit_score
 - raw_fit_score_scaled
 - recent_avg_finish
-- recent_avg_finish_percentile
-- recent_avg_finish_percentile_scaled
+- recent_avg_finish_percentile_interaction
+- recent_avg_finish_percentile_interaction_scaled
 - recent_avg_finish_scaled
 - recent_avg_score
 - recent_avg_score_scaled
@@ -818,8 +844,6 @@ Group 1:
 - recent_vs_history_scaled
 - recent_weighted_finish
 - recent_weighted_finish_scaled
-- recent_wins
-- recent_wins_scaled
 - recent_worst_finish
 - recent_worst_finish_scaled
 - rough_approach_avg
@@ -832,8 +856,10 @@ Group 1:
 - score_scaled
 - score_std_5
 - score_std_5_scaled
-- score_std_history
-- score_std_history_scaled
+- score_std_history_interaction
+- score_std_history_interaction_scaled
+- score_trend_temporal
+- score_trend_temporal_scaled
 - scoring_back_9_scoring_average
 - scoring_back_9_scoring_average_rank
 - scoring_back_9_scoring_average_rank_scaled
@@ -872,8 +898,6 @@ Group 1:
 - scoring_late_scoring_average_scaled
 - scoring_late_scoring_average_total_strokes
 - scoring_late_scoring_average_total_strokes_scaled
-- scoring_par_3_scoring_average
-- scoring_par_3_scoring_average_rank
 - scoring_par_3_scoring_average_total_strokes
 - scoring_par_4_scoring_average
 - scoring_par_4_scoring_average_rank
@@ -881,7 +905,6 @@ Group 1:
 - scoring_par_5_scoring_average
 - scoring_par_5_scoring_average_rank
 - scoring_par_5_scoring_average_total_strokes
-- scoring_par_breakers
 - scoring_par_breakers_#_birdies/eagles
 - scoring_par_breakers_rank
 - scoring_round_1_scoring_average
@@ -912,25 +935,29 @@ Group 1:
 - scoring_scoring_average_actual_rank
 - scoring_scoring_average_actual_rank_scaled
 - scoring_scoring_average_actual_scaled
+- scoring_scoring_average_actual_total_strokes
+- scoring_scoring_average_actual_total_strokes_scaled
 - scoring_scoring_average_adjusted
 - scoring_scoring_average_adjusted_rank
 - scoring_scoring_average_adjusted_rank_scaled
 - scoring_scoring_average_adjusted_scaled
+- scoring_scoring_average_adjusted_total_strokes
+- scoring_scoring_average_adjusted_total_strokes_scaled
 - scoring_variability
 - scoring_variability_scaled
+- season
 - season_scaled
 - second
 - second_scaled
-- seconds
-- seconds_scaled
 - snapshot_best_fedexcup_finish
 - snapshot_best_fedexcup_finish_scaled
+- snapshot_fedexcup_champion
+- snapshot_fedexcup_champion_scaled
 - snapshot_lowest_round
 - snapshot_lowest_round_scaled
 - standings_owgr
 - standings_owgr_scaled
 - standings_rank
-- standings_rank_2_scaled
 - standings_rank_scaled
 - standings_total
 - standings_total_scaled
@@ -942,6 +969,10 @@ Group 1:
 - strokes_gained_approach_sg_approach_the_green_scaled
 - strokes_gained_approach_sg_approach_the_green_total_sg:app
 - strokes_gained_approach_sg_approach_the_green_total_sg:app_scaled
+- strokes_gained_approach_the_green_bunker_rank
+- strokes_gained_approach_the_green_bunker_rank_scaled
+- strokes_gained_approach_the_green_bunker_value
+- strokes_gained_approach_the_green_bunker_value_scaled
 - strokes_gained_approach_the_green_fairway_rank
 - strokes_gained_approach_the_green_fairway_rank_scaled
 - strokes_gained_approach_the_green_fairway_value
@@ -956,16 +987,10 @@ Group 1:
 - strokes_gained_approach_the_green_rough_rank_scaled
 - strokes_gained_approach_the_green_rough_value
 - strokes_gained_approach_the_green_rough_value_scaled
-- strokes_gained_around_green_sg_around_the_green
-- strokes_gained_around_green_sg_around_the_green_rank
-- strokes_gained_around_green_sg_around_the_green_rank_scaled
-- strokes_gained_around_green_sg_around_the_green_scaled
-- strokes_gained_around_green_sg_around_the_green_total_sg:arg
-- strokes_gained_around_green_sg_around_the_green_total_sg:arg_scaled
-- strokes_gained_around_the_green_fairway_rank
-- strokes_gained_around_the_green_fairway_rank_scaled
-- strokes_gained_around_the_green_fairway_value
-- strokes_gained_around_the_green_fairway_value_scaled
+- strokes_gained_around_the_green_bunker_rank
+- strokes_gained_around_the_green_bunker_rank_scaled
+- strokes_gained_around_the_green_bunker_value
+- strokes_gained_around_the_green_bunker_value_scaled
 - strokes_gained_around_the_green_other_rank
 - strokes_gained_around_the_green_other_rank_scaled
 - strokes_gained_around_the_green_other_value
@@ -988,10 +1013,8 @@ Group 1:
 - strokes_gained_driving_sg_tee_to_green_sg:ott_scaled
 - strokes_gained_off_the_tee_par_4_rank
 - strokes_gained_off_the_tee_par_4_value
-- strokes_gained_putting_4_to_8ft_rank
-- strokes_gained_putting_4_to_8ft_rank_scaled
-- strokes_gained_putting_4_to_8ft_value
-- strokes_gained_putting_4_to_8ft_value_scaled
+- strokes_gained_off_the_tee_par_5_rank
+- strokes_gained_off_the_tee_par_5_value
 - strokes_gained_putting_8_to_20ft_rank
 - strokes_gained_putting_8_to_20ft_rank_scaled
 - strokes_gained_putting_8_to_20ft_value
@@ -1012,8 +1035,6 @@ Group 1:
 - strokes_gained_scoring_sg_total_scaled
 - strokes_gained_scoring_sg_total_total_sg:t
 - strokes_gained_scoring_sg_total_total_sg:t_scaled
-- success_ratio
-- success_ratio_scaled
 - summary_birdies
 - summary_birdies_scaled
 - summary_bogeys
@@ -1031,6 +1052,7 @@ Group 1:
 - summary_round1_double_bogeys_scaled
 - summary_round1_eagles
 - summary_round1_eagles_scaled
+- summary_round1_hole_count_scaled
 - summary_round1_pars
 - summary_round2_birdies
 - summary_round2_birdies_scaled
@@ -1040,6 +1062,7 @@ Group 1:
 - summary_round2_double_bogeys_scaled
 - summary_round2_eagles
 - summary_round2_eagles_scaled
+- summary_round2_hole_count_scaled
 - summary_round2_pars
 - summary_round3_birdies
 - summary_round3_birdies_scaled
@@ -1049,6 +1072,7 @@ Group 1:
 - summary_round3_double_bogeys_scaled
 - summary_round3_eagles
 - summary_round3_eagles_scaled
+- summary_round3_hole_count_scaled
 - summary_round3_pars
 - summary_round4_birdies
 - summary_round4_birdies_scaled
@@ -1058,7 +1082,9 @@ Group 1:
 - summary_round4_double_bogeys_scaled
 - summary_round4_eagles
 - summary_round4_eagles_scaled
+- summary_round4_hole_count_scaled
 - summary_round4_pars
+- summary_rounds_complete_scaled
 - summary_total_par
 - summary_total_yards
 - summary_total_yards_scaled
@@ -1068,8 +1094,6 @@ Group 1:
 - temp_variability_scaled
 - third
 - third_scaled
-- thirds
-- thirds_scaled
 - top10
 - top10_2_scaled
 - top10_current
@@ -1087,21 +1111,17 @@ Group 1:
 - top5
 - top5_scaled
 - top_10
-- top_10_finishes
-- top_10_finishes_form
-- top_10_finishes_form_scaled
-- top_10_finishes_history
-- top_10_finishes_history_scaled
-- top_10_finishes_scaled
+- top_10_finishes_history_interaction
+- top_10_finishes_history_interaction_scaled
 - top_10_pct
 - top_10_pct_scaled
 - top_10_scaled
 - top_25
 - top_25_finishes
-- top_25_finishes_form
-- top_25_finishes_form_scaled
-- top_25_finishes_history
-- top_25_finishes_history_scaled
+- top_25_finishes_form_interaction
+- top_25_finishes_form_interaction_scaled
+- top_25_finishes_history_interaction
+- top_25_finishes_history_interaction_scaled
 - top_25_finishes_scaled
 - top_25_pct
 - top_25_pct_scaled
@@ -1119,21 +1139,20 @@ Group 1:
 - total_rounds_played
 - total_rounds_played_scaled
 - total_rounds_scaled
-- total_score_std_history
-- total_score_std_history_scaled
+- total_score_std_history_interaction
+- total_score_std_history_interaction_scaled
 - tournament_appearances
-- tournament_success_likelihood
+- tournament_success_likelihood_interaction
+- tournament_year
 - under_over_ratio
 - under_over_ratio_scaled
-- victory_potential
-- victory_potential_scaled
+- victory_potential_interaction
+- victory_potential_interaction_scaled
 - weather_difficulty
 - weather_difficulty_scaled
 - weighted_recent_position
 - wetness_score
 - wetness_score_scaled
-- win_history
-- win_history_scaled
 - wind_chill
 - wind_chill_scaled
 - wind_difficulty
@@ -1142,16 +1161,13 @@ Group 1:
 - wind_range_scaled
 - wind_variability
 - wind_variability_scaled
-- wins
+- wins_1_3_scaled
 - wins_2_scaled
-- wins_current
-- wins_current_scaled
-- wins_scaled
 - worst_finish
-- worst_finish_form
-- worst_finish_form_scaled
-- worst_finish_history
-- worst_finish_history_scaled
+- worst_finish_form_interaction
+- worst_finish_form_interaction_scaled
+- worst_finish_history_interaction
+- worst_finish_history_interaction_scaled
 - worst_finish_position
 - worst_finish_position_scaled
 - worst_finish_scaled
@@ -1159,53 +1175,58 @@ Group 1:
 - worst_round_score_scaled
 - worst_score_to_par
 - worst_score_to_par_5
-- worst_score_to_par_form
-- worst_score_to_par_history
+- worst_score_to_par_form_interaction
+- worst_score_to_par_history_interaction
 - worst_total_score
-- worst_total_score_form
-- worst_total_score_form_scaled
+- worst_total_score_form_interaction
+- worst_total_score_form_interaction_scaled
+- worst_total_score_history_interaction
+- worst_total_score_history_interaction_scaled
 - worst_total_score_scaled
 - worst_winning_score
 - worst_winning_score_scaled
+- year
+- year_4
+- year_4_scaled
+- year_scaled
+- years_recorded_scaled
 
 Group 2:
-- history_sg_p
-- history_sg_p_scaled
-- history_sg_short_game
-- history_sg_short_game_scaled
+- strokes_gained_around_green_sg_around_the_green
+- strokes_gained_around_green_sg_around_the_green_rank
+- strokes_gained_around_green_sg_around_the_green_rank_scaled
+- strokes_gained_around_green_sg_around_the_green_scaled
+- strokes_gained_around_green_sg_around_the_green_total_sg:arg
+- strokes_gained_around_green_sg_around_the_green_total_sg:arg_scaled
 
 Group 3:
-- history_sg_app_pct
-- history_sg_app_pct_scaled
-- history_sg_atg_pct
-- history_sg_atg_pct_scaled
-- history_sg_ott_pct
-- history_sg_ott_pct_scaled
-- history_sg_p_pct
-- history_sg_p_pct_scaled
+- scoring_par_3_scoring_average
+- scoring_par_3_scoring_average_rank
 
 Group 4:
-- first_to_last_diff
-- score_trend
-- score_trend_scaled
+- latest_wins
+- latest_wins_scaled
+- wins
+- wins_scaled
 
 Group 5:
-- win_rate
-- win_rate_scaled
-- wins_1_scaled
-- ... and 5 more groups
+- latest_seconds
+- latest_seconds_scaled
+- seconds
+- seconds_scaled
+- ... and 15 more groups
 
 ### Consider Special Handling for Features with High Missing Values:
-- scoring_scoring_average_adjusted_total_strokes
-- par5_to_par_x
-- par4_to_par_x
+- history_worst_sg_category_numeric
 - par3_to_par_x
-- course_yards_per_par
-- course_overview_yardage
-- course_yardage
-- total_score_std_form
-- score_std_form
-- yards_per_par
-- ... and 92 more
+- par4_to_par_x
+- par5_to_par_x
+- history_best_sg_category_numeric
+- table_national_teams
+- driving_driving_distance___all_drives_total_distance
+- table_playoff_record
+- table_international_wins
+- yardage
+- ... and 648 more
 
 ### Most Important Features to Retain:
