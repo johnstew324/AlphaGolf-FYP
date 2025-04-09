@@ -43,7 +43,6 @@ TOURNAMENTS_WEATHER_JSON = "C:\\Users\\johns\\AlphaGOLF-FYP\\AlphaGolf\\data\\ra
 
 # Load JSON data
 def load_json_data():
-    """Load data from JSON files"""
     try:
         # Load players data
         with open(PLAYERS_JSON, 'r') as f:

@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping
+from tensorflow.keras.models import Sequential # type: ignore
+from tensorflow.keras.layers import Dense, Dropout # type: ignore
+from tensorflow.keras.optimizers import Adam # type: ignore
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping # type: ignore
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ import pickle
 from datetime import datetime
 import argparse
 
-# Suppress warnings
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -37,7 +37,6 @@ if not physical_devices:
     # Use moderate batch sizes for CPU training
 
 class ReplayBuffer:
-    """Replay Buffer to store experiences for DQN training"""
     
     def __init__(self, max_size=5000):  # Reduced buffer size for 16GB RAM
         self.buffer = deque(maxlen=max_size)
@@ -272,21 +271,7 @@ class DQNAgent:
             raise
     
     def calculate_win_probability(self, tournament_df, features):
-        """
-        Calculate win probability for each player in a tournament
-        
-        Parameters:
-        -----------
-        tournament_df : DataFrame
-            Data for a single tournament
-        features : list
-            List of feature columns to use
-        
-        Returns:
-        --------
-        DataFrame
-            Original tournament data with added win probability column
-        """
+        """Calculate win probability for each player in a tournament"""
         result_df = tournament_df.copy()
         
         # Prepare states for all players
@@ -294,7 +279,8 @@ class DQNAgent:
         player_indices = []
         
         for idx, row in tournament_df.iterrows():
-            state = row[features].values.reshape(1, -1)
+            # Add explicit conversion to float32
+            state = row[features].values.astype(np.float32).reshape(1, -1)
             states.append(state)
             player_indices.append(idx)
         
@@ -342,21 +328,45 @@ class DQNAgent:
         """Load replay memory"""
         self.memory.load(filepath)
         print(f"Replay memory loaded from {filepath}")
-
+        
+             
+        
+def clean_position(pos):
+    """
+    Convert golf position strings to numeric values
+    Examples: "1" -> 1, "T2" -> 2, "CUT" -> None, "WD" -> None
+    """
+    if pd.isna(pos):
+        return None
+    
+    pos = str(pos).upper().strip()
+    
+    # Handle special cases
+    if pos in ['CUT', 'WD', 'DQ', 'DNS', 'MDF']:
+        return None
+    
+    # Handle tied positions (e.g., "T12")
+    if pos.startswith('T'):
+        try:
+            return int(pos[1:])
+        except ValueError:
+            return None
+    
+    # Handle playoff positions (e.g., "P2")
+    if pos.startswith('P'):
+        try:
+            return int(pos[1:])
+        except ValueError:
+            return None
+    
+    # Regular position
+    try:
+        return int(pos)
+    except ValueError:
+        return None        
+        
+        
 def data_preparation(filepath):
-    """
-    Prepare data for DQN model
-    
-    Parameters:
-    -----------
-    filepath : str
-        Path to the CSV file containing golf tournament data
-    
-    Returns:
-    --------
-    tuple
-        (train_df, test_df, holdout_df, feature_list)
-    """
     print("Starting data preparation...")
     
     # Load data
@@ -367,6 +377,10 @@ def data_preparation(filepath):
     print(f"Number of tournaments: {df['tournament_id'].nunique()}")
     print(f"Number of players: {df['player_id'].nunique()}")
     
+    # Define target columns that should not be used as features
+    target_columns = ['hist_winner', 'hist_top3', 'hist_top10', 'hist_top25', 
+                     'hist_made_cut', 'position_numeric']
+    
     # Check for missing values
     missing_values = df.isnull().sum()
     missing_pct = (missing_values / len(df)) * 100
@@ -375,12 +389,39 @@ def data_preparation(filepath):
     print(f"\nDropping {len(high_missing_cols)} columns with >30% missing values")
     df = df.drop(columns=high_missing_cols)
     
+    # Handle position field if it exists
+    position_cols = [col for col in df.columns if 'position' in col.lower()]
+    for pos_col in position_cols:
+        if df[pos_col].dtype == 'object':  # Check if it's a string column
+            print(f"Converting golf position column: {pos_col}")
+            
+            # Create a cleaned numeric position column
+            df[f'{pos_col}_numeric'] = df[pos_col].apply(lambda x: clean_position(x))
+            
+            # If the position_numeric column doesn't exist yet, create it
+            if 'position_numeric' not in df.columns:
+                df['position_numeric'] = df[f'{pos_col}_numeric']
+    
     # Impute remaining missing values
     columns_with_missing = df.columns[df.isnull().any()].tolist()
     for col in columns_with_missing:
-        if col not in ['player_id', 'tournament_id']:
-            median_value = df[col].median()
-            df[col] = df[col].fillna(median_value)
+        if col not in ['player_id', 'tournament_id'] + target_columns:
+            try:
+                if df[col].dtype in ['int64', 'float64']:
+                    # For numeric columns, use median
+                    median_value = df[col].median()
+                    df[col] = df[col].fillna(median_value)
+                else:
+                    # For non-numeric columns, use mode
+                    mode_value = df[col].mode()[0] if not df[col].mode().empty else None
+                    df[col] = df[col].fillna(mode_value)
+            except TypeError as e:
+                print(f"Error processing column '{col}': {e}")
+                print(f"Column data type: {df[col].dtype}")
+                print(f"Sample values: {df[col].dropna().sample(min(5, len(df[col].dropna()))).tolist()}")
+                
+                # Skip this column if we can't impute it
+                print(f"Skipping imputation for column: {col}")
     
     # Check if tournament_id is string format like "R2025016"
     if not pd.api.types.is_numeric_dtype(df['tournament_id']):
@@ -396,8 +437,10 @@ def data_preparation(filepath):
     
     to_scale = []
     for col in numerical_cols:
-        # Skip ID columns and columns that appear already scaled
-        if col in ['player_id', 'tournament_id', 'tournament_id_code'] or any(pattern in col.lower() for pattern in scaled_pattern):
+        # Skip ID columns, target columns, and columns that appear already scaled
+        if (col in ['player_id', 'tournament_id', 'tournament_id_code'] or 
+            col in target_columns or 
+            any(pattern in col.lower() for pattern in scaled_pattern)):
             continue
             
         # Check data range for normalization decision
@@ -412,80 +455,68 @@ def data_preparation(filepath):
         scaler = StandardScaler()
         df[to_scale] = scaler.fit_transform(df[to_scale])
     
-    # Identify the winner in each tournament
-    # This implementation depends on your data structure
-    
-    # Option 1: If you have a direct indicator column
-    if any(col in df.columns for col in ['is_winner', 'winner']):
-        winner_col = 'is_winner' if 'is_winner' in df.columns else 'winner'
-        print(f"Using existing winner column: {winner_col}")
-    else:
-        # Option 2: If winner is deducible from other columns like standings or position
-        potential_rank_cols = ['standings_rank_2_scaled']
-        rank_col = next((col for col in potential_rank_cols if col in df.columns), None)
+    # Identify winner using the hist_winner column
+    if 'hist_winner' in df.columns:
+        print("\nUsing 'hist_winner' column to identify tournament winners")
+        df['is_winner'] = df['hist_winner'].fillna(0).astype(int)
         
-        if rank_col:
-            print(f"Using {rank_col} to determine winners")
-            # Identify the player with lowest (best) rank in each tournament
-            winners = df.loc[df.groupby('tournament_id_code')[rank_col].idxmin()]
-            df['is_winner'] = 0
-            df.loc[winners.index, 'is_winner'] = 1
-        else:
-            # Option 3: If winner isn't clear, create synthetic winners based on available metrics
-            print("Creating synthetic winners using performance metrics")
+        # Check if we have a reasonable number of winners
+        winner_count = df['is_winner'].sum()
+        tournament_count = df['tournament_id'].nunique()
+        
+        print(f"Identified {winner_count} winners across {tournament_count} tournaments")
+        
+        # If we don't have enough winners, fall back to hist_top3
+        if winner_count < tournament_count:
+            print(f"Only found winners for {winner_count}/{tournament_count} tournaments")
+            print("Using hist_top3 as fallback for tournaments without winners")
             
-            # Use features like strokes gained total, scoring average, etc.
-            metrics = []
+            # Get list of tournaments without winners
+            tournaments_with_winners = df[df['is_winner'] == 1]['tournament_id'].unique()
+            all_tournaments = df['tournament_id'].unique()
+            tournaments_without_winners = [t for t in all_tournaments if t not in tournaments_with_winners]
             
-            if 'strokes_gained_scoring_sg_total_total_sg:t' in df.columns:
-                metrics.append('strokes_gained_scoring_sg_total_total_sg:t')
-            
-            if 'scoring_scoring_average_actual' in df.columns:
-                # Lower is better for scoring average, so we negate it
-                df['neg_scoring_average'] = -df['scoring_scoring_average_actual']
-                metrics.append('neg_scoring_average')
-            
-            # Create composite score from available metrics
-            if metrics:
-                # Normalize each metric for equal weighting
-                for metric in metrics:
-                    df[f'{metric}_norm'] = (df[metric] - df[metric].min()) / (df[metric].max() - df[metric].min())
+            for tournament_id in tournaments_without_winners:
+                # Get tournament data
+                tournament_data = df[df['tournament_id'] == tournament_id]
                 
-                # Create composite score
-                norm_cols = [f'{metric}_norm' for metric in metrics]
-                df['perf_score'] = df[norm_cols].sum(axis=1)
-                
-                # Identify winner as player with highest score in each tournament
-                winners = df.loc[df.groupby('tournament_id_code')['perf_score'].idxmax()]
-                df['is_winner'] = 0
-                df.loc[winners.index, 'is_winner'] = 1
-                
-                print(f"Created synthetic winners using metrics: {metrics}")
-            else:
-                # If no suitable metrics, use 'top10' if available
-                if 'top10' in df.columns or 'top_10' in df.columns:
-                    top10_col = 'top10' if 'top10' in df.columns else 'top_10'
-                    top10_players = df[df[top10_col] == 1]
+                # Check if any player has hist_top3 = 1
+                if 'hist_top3' in df.columns:
+                    top3_players = tournament_data[tournament_data['hist_top3'] == 1]
                     
-                    # Randomly select one top 10 player from each tournament as winner
-                    tournaments = top10_players['tournament_id_code'].unique()
-                    df['is_winner'] = 0
-                    
-                    for tourn in tournaments:
-                        tourn_players = top10_players[top10_players['tournament_id_code'] == tourn]
-                        if not tourn_players.empty:
-                            winner_idx = np.random.choice(tourn_players.index)
-                            df.loc[winner_idx, 'is_winner'] = 1
-                    
-                    print(f"Created winners by randomly selecting from top 10 players")
-                else:
-                    print("Warning: No suitable way to determine winners found")
-                    df['is_winner'] = 0
+                    if len(top3_players) > 0:
+                        # Select first top3 player as winner for this tournament
+                        winner_idx = top3_players.index[0]
+                        df.loc[winner_idx, 'is_winner'] = 1
     
-    # Check winner counts
-    winner_count = df['is_winner'].sum()
-    tournament_count = df['tournament_id'].nunique()
-    print(f"Identified {winner_count} winners across {tournament_count} tournaments")
+    # If hist_winner column not available, use hist_top3 directly
+    elif 'hist_top3' in df.columns:
+        print("\nNo 'hist_winner' column. Using 'hist_top3' column to identify tournament winners")
+        
+        # Group by tournament and get one top3 player per tournament
+        df['is_winner'] = 0
+        for tournament_id in df['tournament_id'].unique():
+            tournament_data = df[df['tournament_id'] == tournament_id]
+            top3_players = tournament_data[tournament_data['hist_top3'] == 1]
+            
+            if len(top3_players) > 0:
+                # Select first top3 player as winner for this tournament
+                winner_idx = top3_players.index[0]
+                df.loc[winner_idx, 'is_winner'] = 1
+    
+    # If neither column is available, use position_numeric if available
+    elif 'position_numeric' in df.columns:
+        print("\nUsing 'position_numeric' to identify tournament winners")
+        
+        # Group by tournament and find the player with position_numeric = 1
+        df['is_winner'] = 0
+        for tournament_id in df['tournament_id'].unique():
+            tournament_data = df[df['tournament_id'] == tournament_id]
+            winners = tournament_data[tournament_data['position_numeric'] == 1]
+            
+            if len(winners) > 0:
+                winner_idx = winners.index[0]
+                df.loc[winner_idx, 'is_winner'] = 1
     
     # Calculate win percentage for each player (historical data)
     player_stats = df.groupby('player_id').agg(
@@ -514,16 +545,14 @@ def data_preparation(filepath):
     test_df = df[df['tournament_id_code'].isin(test_tournaments)]
     holdout_df = df[df['tournament_id_code'].isin(holdout_tournaments)]
     
-    print(f"Data split complete:")
+    print(f"\nData split complete:")
     print(f"Training: {len(train_tournaments)} tournaments, {len(train_df)} rows")
     print(f"Testing: {len(test_tournaments)} tournaments, {len(test_df)} rows")
     print(f"Holdout: {len(holdout_tournaments)} tournaments, {len(holdout_df)} rows")
     
     # Create feature list (exclude non-feature columns)
     exclude_cols = ['player_id', 'tournament_id', 'tournament_id_code', 'is_winner', 
-                    'win_percentage', 'perf_score']
-    if 'neg_scoring_average' in df.columns:
-        exclude_cols.append('neg_scoring_average')
+                    'win_percentage'] + target_columns
     
     # Also exclude any derived normalization columns we created
     for col in df.columns:
@@ -532,28 +561,12 @@ def data_preparation(filepath):
     
     feature_list = [col for col in df.columns if col not in exclude_cols]
     
-    print(f"Selected {len(feature_list)} features for the model")
+    print(f"\nSelected {len(feature_list)} features for the model")
+    print("Target columns excluded from features:", target_columns)
     
     return train_df, test_df, holdout_df, feature_list
 
 def automated_hyperparameter_search(train_df, test_df, feature_list):
-    """
-    Perform an automated hyperparameter search for the DQN model
-    
-    Parameters:
-    -----------
-    train_df : DataFrame
-        Training data
-    test_df : DataFrame
-        Testing data
-    feature_list : list
-        List of features to use
-    
-    Returns:
-    --------
-    dict
-        Best hyperparameters
-    """
     print("Starting hyperparameter search...")
     
     # Define parameter ranges based on RX580 GPU and 16GB RAM constraints
@@ -785,60 +798,16 @@ def train_dqn_agent(train_df, test_df, feature_list,
                    model_dir="./models",
                    checkpoint_interval=10,
                    auto_tune=False):
-    """
-    Train a DQN agent for golf tournament winner prediction
-    
-    Parameters:
-    -----------
-    train_df : DataFrame
-        Training data
-    test_df : DataFrame
-        Testing data
-    feature_list : list
-        List of features to use
-    num_episodes : int
-        Number of training episodes
-    batch_size : int
-        Batch size for training
-    learning_rate : float
-        Learning rate for model updates
-    gamma : float
-        Discount factor for future rewards
-    epsilon_decay : float
-        Rate at which epsilon decreases
-    hidden_layers : list
-        List of hidden layer sizes
-    dropout_rate : float
-        Dropout rate for regularization
-    memory_size : int
-        Maximum size of replay memory
-    model_dir : str
-        Directory to save model files
-    checkpoint_interval : int
-        How often to save model checkpoints
-    auto_tune : bool
-        Whether to perform hyperparameter tuning
-    
-    Returns:
-    --------
-    DQNAgent
-        Trained agent
-    dict
-        Training history and metrics
-    """
-    # Create model directory if it doesn't exist
+
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
-    
-    # Record start time
+
     start_time = datetime.now()
     print(f"Training started at: {start_time}")
-    
-    # Get state size
+
     state_size = len(feature_list)
     print(f"Input feature count: {state_size}")
-    
-    # Perform hyperparameter tuning if requested
+
     if auto_tune:
         print("Performing automated hyperparameter tuning...")
         best_params = automated_hyperparameter_search(train_df, test_df, feature_list)
@@ -1029,18 +998,7 @@ def train_dqn_agent(train_df, test_df, feature_list,
     plot_training_history(history, model_dir)
     
     return agent, history
-
 def plot_training_history(history, save_dir):
-    """
-    Plot training metrics
-    
-    Parameters:
-    -----------
-    history : dict
-        Dictionary containing training metrics
-    save_dir : str
-        Directory to save plots
-    """
     plt.figure(figsize=(15, 12))
     
     # Plot rewards
@@ -1091,22 +1049,6 @@ def plot_training_history(history, save_dir):
     plt.close('all')  # Close all figures
 
 def run_prediction(filepath=None, model_path=None, output_dir='./predictions'):
-    """
-    Main function to run the complete prediction pipeline
-    
-    Parameters:
-    -----------
-    filepath : str
-        Path to the dataset file
-    model_path : str
-        Path to a pre-trained model (if None, train a new model)
-    output_dir : str
-        Directory to save prediction results and models
-    
-    Returns:
-    --------
-    None
-    """
     # Create output directory
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -1171,28 +1113,6 @@ def run_prediction(filepath=None, model_path=None, output_dir='./predictions'):
     print("Prediction pipeline completed successfully!")
 
 def evaluate_dqn_agent(agent, test_df, feature_list, tournament_batch_size=None):
-    """
-    Evaluate the trained DQN agent on test data
-    
-    Parameters:
-    -----------
-    agent : DQNAgent
-        Trained DQN agent
-    test_df : DataFrame
-        Test data
-    feature_list : list
-        List of features used by the model
-    tournament_batch_size : int
-        Number of tournaments to process at once (for memory management)
-        If None, process all tournaments at once
-    
-    Returns:
-    --------
-    dict
-        Dictionary with evaluation metrics
-    DataFrame
-        Detailed prediction results
-    """
     print("\nEvaluating DQN agent on test data...")
     
     # Get unique tournament IDs
@@ -1200,12 +1120,12 @@ def evaluate_dqn_agent(agent, test_df, feature_list, tournament_batch_size=None)
     
     # Initialize metrics
     metrics = {
-        'accuracy': 0,
-        'top3_accuracy': 0,
-        'top5_accuracy': 0,
-        'top10_accuracy': 0,
-        'avg_winner_probability': 0,
-        'avg_winner_rank': 0
+        'accuracy': 0,               # Exact winner prediction
+        'top3_accuracy': 0,          # Winner in top 3
+        'top5_accuracy': 0,          # Winner in top 5
+        'top10_accuracy': 0,         # Winner in top 10
+        'avg_winner_probability': 0, # Average predicted probability for actual winners
+        'avg_winner_rank': 0         # Average rank of actual winners in predictions
     }
     
     # Store detailed results
@@ -1260,10 +1180,17 @@ def evaluate_dqn_agent(agent, test_df, feature_list, tournament_batch_size=None)
                     metrics['top10_accuracy'] += 1
             
             # Add tournament ID to predictions
-            predictions['tournament_id'] = tournament_id
+            # Get the original tournament_id (not the code)
+            original_tournament_id = tournament_data['tournament_id'].iloc[0]
+            predictions['tournament_id'] = original_tournament_id
+            
+            # Include target variables in the results if available
+            target_cols = ['hist_winner', 'hist_top3', 'hist_top10', 'hist_top25', 
+                          'hist_made_cut', 'position_numeric']
+            available_target_cols = [col for col in target_cols if col in tournament_data.columns]
             
             # Keep key columns for analysis
-            keep_cols = ['tournament_id', 'player_id', 'is_winner', 'win_probability', 'q_value']
+            keep_cols = ['tournament_id', 'player_id', 'is_winner', 'win_probability', 'q_value'] + available_target_cols
             additional_cols = [col for col in tournament_data.columns 
                               if col in ['owgr', 'player_name', 'experience_level_numeric', 
                                         'win_percentage', 'tournament_name', 'course_name']]
@@ -1275,10 +1202,8 @@ def evaluate_dqn_agent(agent, test_df, feature_list, tournament_batch_size=None)
             # Add rank column
             tournament_results['predicted_rank'] = range(1, len(tournament_results) + 1)
             
-            # Append to all predictions
             all_predictions.append(tournament_results)
-    
-    # Combine all tournament predictions
+            
     if all_predictions:
         all_results = pd.concat(all_predictions, ignore_index=True)
     else:
@@ -1295,7 +1220,7 @@ def evaluate_dqn_agent(agent, test_df, feature_list, tournament_batch_size=None)
         metrics['avg_winner_rank'] /= total_tournaments
     
     # Print metrics
-    print("\nEvaluation Metrics:")
+    print("\nEvaluation Metrics (Winner Prediction):")
     print(f"Accuracy (exact winner): {metrics['accuracy']:.4f} ({metrics['accuracy']*total_tournaments:.0f}/{total_tournaments})")
     print(f"Top-3 Accuracy: {metrics['top3_accuracy']:.4f} ({metrics['top3_accuracy']*total_tournaments:.0f}/{total_tournaments})")
     print(f"Top-5 Accuracy: {metrics['top5_accuracy']:.4f} ({metrics['top5_accuracy']*total_tournaments:.0f}/{total_tournaments})")

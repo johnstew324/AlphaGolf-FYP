@@ -11,31 +11,16 @@ from sklearn.decomposition import PCA
 from scipy.cluster import hierarchy
 from scipy.spatial.distance import squareform
 
-# Add parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
-# Import components
 from feature_engineering.feature_selection.feature_transformer import FeatureTransformer
 from feature_engineering.feature_selection.feature_analyser import FeatureAnalyzer
 from feature_engineering.feature_selection.feature_selector import FeatureSelector
 
 def plot_correlation_matrix(df, title, n_features=30, figsize=(15, 12), output_file=None):
-    """
-    Plot correlation matrix heatmap for the top n features by variance.
-    
-    Args:
-        df: DataFrame containing features
-        title: Plot title
-        n_features: Number of features to include
-        figsize: Figure size (width, height)
-        output_file: Optional path to save the plot
-        
-    Returns:
-        Matplotlib figure
-    """
-    # Select features with highest variance if we have more than n_features
+
     if len(df.columns) > n_features:
         variances = df.var().sort_values(ascending=False)
         top_features = variances.index[:n_features].tolist()

@@ -9,33 +9,15 @@ from sklearn.feature_selection import mutual_info_regression, chi2
 from sklearn.preprocessing import StandardScaler
 
 class FeatureAnalyzer:
-    """
-    Analyzes features to support feature selection and transformation decisions.
-    
-    This class provides methods to examine feature properties, correlations,
-    distributions, and importance metrics to guide feature selection.
-    """
     
     def __init__(self, features_df, target_df=None):
-        """
-        Initialize the feature analyzer with a features dataframe.
-        
-        Args:
-            features_df: DataFrame containing all features
-            target_df: Optional DataFrame containing target variables
-        """
         self.features_df = features_df.copy()
         self.target_df = target_df.copy() if target_df is not None else None
         self.player_ids = self.features_df['player_id'].unique() if 'player_id' in self.features_df.columns else []
         self.analysis_results = {}
         
     def analyze_features(self):
-        """
-        Perform comprehensive analysis of features and store results.
         
-        Returns:
-            Dict with analysis results
-        """
         self.analyze_basic_stats()
         self.analyze_correlations()
         self.analyze_missing_values()
@@ -46,127 +28,77 @@ class FeatureAnalyzer:
         return self.analysis_results
     
     def analyze_basic_stats(self):
-        """
-        Analyze basic statistics for each feature.
-        """
-        # Get numeric columns only
         numeric_features = self.features_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
         
-        # Calculate statistics
         stats = self.features_df[numeric_features].describe().T
         stats['variance'] = self.features_df[numeric_features].var()
         stats['missing'] = self.features_df[numeric_features].isna().sum()
         stats['missing_pct'] = (self.features_df[numeric_features].isna().sum() / len(self.features_df)) * 100
         
-        # Add low variance flag
         stats['low_variance'] = stats['variance'] < 0.01
         
-        # Store results
         self.analysis_results['basic_stats'] = stats
         
-        # Identify constant or near-constant features
         low_variance_features = stats.loc[stats['low_variance'], :].index.tolist()
         self.analysis_results['low_variance_features'] = low_variance_features
         
         return stats
     
     def analyze_correlations(self, method='pearson', threshold=0.8):
-        """
-        Analyze correlations between features.
-        
-        Args:
-            method: Correlation method ('pearson' or 'spearman')
-            threshold: Threshold to identify high correlations
-            
-        Returns:
-            DataFrame with feature correlations
-        """
-        # Get numeric columns only
         numeric_features = self.features_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
         
-        # Filter out special columns
         excluded_cols = ['player_id', 'tournament_id', 'feature_year']
         numeric_features = [col for col in numeric_features if col not in excluded_cols]
         
-        # Calculate correlation matrix
         corr_matrix = self.features_df[numeric_features].corr(method=method)
         
-        # Identify highly correlated feature pairs
         high_corr_pairs = []
         
-        # Get upper triangle of correlation matrix
         upper_tri = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
         
-        # Find feature pairs with correlation above threshold
         for col in upper_tri.columns:
             for idx, value in upper_tri[col].items():
                 if abs(value) > threshold:
                     high_corr_pairs.append((idx, col, value))
         
-        # Store results
         self.analysis_results['correlation_matrix'] = corr_matrix
         self.analysis_results['high_correlation_pairs'] = sorted(high_corr_pairs, key=lambda x: abs(x[2]), reverse=True)
-        
-        # Create sets of correlated features for possible elimination
+    
         correlated_groups = self._group_correlated_features(high_corr_pairs, threshold)
         self.analysis_results['correlated_feature_groups'] = correlated_groups
         
         return corr_matrix
     
     def analyze_missing_values(self):
-        """
-        Analyze missing values across features.
-        
-        Returns:
-            DataFrame with missing value analysis
-        """
-        # Calculate missing values
         missing = self.features_df.isna().sum().reset_index()
         missing.columns = ['feature', 'missing_count']
         missing['missing_pct'] = (missing['missing_count'] / len(self.features_df)) * 100
         
-        # Sort by missing percentage
         missing = missing.sort_values('missing_pct', ascending=False)
         
-        # Identify features with high missing values
         high_missing = missing[missing['missing_pct'] > 50]['feature'].tolist()
         
-        # Store results
         self.analysis_results['missing_values'] = missing
         self.analysis_results['high_missing_features'] = high_missing
         
-        # Special analysis for LIV players
         if len(self.player_ids) > 0:
             missing_by_player = pd.DataFrame({'player_id': self.player_ids})
             
-            # Calculate missing percentage for each player
             for player_id in self.player_ids:
                 player_data = self.features_df[self.features_df['player_id'] == player_id]
                 if not player_data.empty:
                     missing_by_player.loc[missing_by_player['player_id'] == player_id, 'missing_pct'] = \
                         player_data.isna().sum().sum() / (len(player_data.columns) * len(player_data)) * 100
             
-            # Identify potential LIV/retired players (very high missing data)
             potential_special_players = missing_by_player[missing_by_player['missing_pct'] > 70]['player_id'].tolist()
             self.analysis_results['potential_special_players'] = potential_special_players
         
         return missing
     
     def analyze_feature_importance(self, target_column='position', method='correlation'):
-        """
-        Analyze feature importance with respect to target variables.
-        
-        Args:
-            target_column: Target column to analyze against
-            method: Method to calculate importance ('correlation' or 'mutual_info')
-            
-        Returns:
-            DataFrame with feature importance scores
-        """
         if self.target_df is None:
             return None
         
-        # Merge features with target for importance calculation
         merged_df = pd.merge(
             self.features_df,
             self.target_df[['player_id', 'tournament_id', target_column]],
@@ -177,17 +109,16 @@ class FeatureAnalyzer:
         if merged_df.empty or target_column not in merged_df.columns:
             return None
         
-        # Get numeric features
         numeric_features = merged_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
         numeric_features = [col for col in numeric_features 
                             if col not in ['player_id', 'tournament_id', target_column]]
         
-        # Calculate importance based on method
+
         importance = []
         
         if method == 'correlation':
             for feature in numeric_features:
-                if merged_df[feature].notna().sum() > 5:  # Need minimum sample size
+                if merged_df[feature].notna().sum() > 5: 
                     corr, p_value = pearsonr(
                         merged_df[feature].fillna(merged_df[feature].mean()),
                         merged_df[target_column]
@@ -200,40 +131,31 @@ class FeatureAnalyzer:
                     })
                     
         elif method == 'mutual_info':
-            # Scale features for MI calculation
             X = merged_df[numeric_features].fillna(0)
             scaler = StandardScaler()
             X_scaled = scaler.fit_transform(X)
             
-            # Calculate mutual information
             mi_scores = mutual_info_regression(X_scaled, merged_df[target_column])
             
             for idx, feature in enumerate(numeric_features):
                 importance.append({
                     'feature': feature,
                     'importance': mi_scores[idx],
-                    'sign': None,  # MI doesn't provide direction
+                    'sign': None, 
                     'p_value': None
                 })
         
-        # Create DataFrame and sort by importance
         importance_df = pd.DataFrame(importance)
         importance_df = importance_df.sort_values('importance', ascending=False)
         
-        # Store results
         self.analysis_results[f'importance_{target_column}'] = importance_df
         
-        # Get top 20% important features
         top_features = importance_df.head(int(len(importance_df) * 0.2))['feature'].tolist()
         self.analysis_results[f'top_features_{target_column}'] = top_features
         
         return importance_df
     
     def analyze_feature_groups(self):
-        """
-        Analyze features by logical groups to guide selection decisions.
-        """
-        # Define logical feature groups based on prefixes/keywords
         feature_groups = {
             'player_performance': ['sg_', 'strokes_gained_', 'scoring_', 'driving_', 'putting_'],
             'course_characteristics': ['course_', 'par3_', 'par4_', 'par5_', 'yards_', 'difficulty'],
@@ -245,7 +167,6 @@ class FeatureAnalyzer:
             'meta_features': ['component', 'likelihood', 'potential', 'percentile']
         }
         
-        # Categorize features into groups
         grouped_features = {}
         all_columns = self.features_df.columns.tolist()
         
@@ -257,7 +178,6 @@ class FeatureAnalyzer:
             
             grouped_features[group_name] = sorted(list(set(group_features)))
         
-        # Add uncategorized features
         categorized = [feature for features in grouped_features.values() for feature in features]
         exclude_cols = ['player_id', 'tournament_id', 'feature_year', 'has_']
         uncategorized = [col for col in all_columns 
@@ -266,10 +186,8 @@ class FeatureAnalyzer:
         
         grouped_features['uncategorized'] = uncategorized
         
-        # Store results
         self.analysis_results['feature_groups'] = grouped_features
-        
-        # Calculate statistics for each group
+
         group_stats = {}
         for group, features in grouped_features.items():
             numeric_features = [f for f in features 
@@ -288,17 +206,6 @@ class FeatureAnalyzer:
         return grouped_features
     
     def _group_correlated_features(self, corr_pairs, threshold):
-        """
-        Group highly correlated features into clusters.
-        
-        Args:
-            corr_pairs: List of correlated feature pairs (feat1, feat2, corr_value)
-            threshold: Correlation threshold
-            
-        Returns:
-            List of feature groups
-        """
-        # Create a dictionary of correlated features
         corr_dict = {}
         
         for feat1, feat2, corr in corr_pairs:
@@ -311,7 +218,6 @@ class FeatureAnalyzer:
                 corr_dict[feat1].add(feat2)
                 corr_dict[feat2].add(feat1)
         
-        # Find groups using a simple clustering approach
         visited = set()
         groups = []
         

@@ -18,7 +18,7 @@ def load_and_examine_data(filepath):
     print(f"\nNumber of tournaments: {df['tournament_id'].nunique()}")
     print(f"\nNumber of players: {df['player_id'].nunique()}")
     
-    # Examine tournament_id format
+
     print("\nSample tournament_id format:")
     print(df['tournament_id'].iloc[:5])
     
@@ -32,7 +32,7 @@ def load_and_examine_data(filepath):
     print("\nColumns with missing values:")
     print(missing_df[missing_df['Missing Values'] > 0].sort_values('Percentage', ascending=False))
     
-    # Check for low variance features on numerical columns only
+
     variance = df.select_dtypes(include=['float64', 'int64']).var()
     variance_df = pd.DataFrame({
         'Variance': variance
@@ -41,14 +41,11 @@ def load_and_examine_data(filepath):
     print("\nLow variance columns (< 0.01):")
     print(low_variance_cols)
     
-    # Identify already normalized features based on naming patterns
     normalized_pattern = ['_scaled', '_norm', '_pct', '_ratio', 'percentage']
     already_normalized = [col for col in df.columns if any(pattern in col.lower() for pattern in normalized_pattern)]
     print("\nFeatures that appear to be already normalized based on naming convention:")
     print(already_normalized)
     
-    # Check if any non-scaled features remain
-    # Typically, scaled features are in the range (-3, 3) for standardized or (0, 1) for min-max
     potential_unscaled = []
     for col in df.select_dtypes(include=['float64', 'int64']).columns:
         # Skip IDs and already normalized features
@@ -173,24 +170,16 @@ def create_tournament_splits(df, holdout_pct=0.2, test_pct=0.2, random_state=42)
 
 def identify_winners(df):
     """
-    Identify the winner in each tournament or create a synthetic winner
+    Identify the winner in each tournament using the new target columns
     """
-    # Check if there's a winner column or indicator
-    potential_winner_cols = ['top_10', 'top10', 'wins_current', 'third']
+    print("\nUsing new target columns to identify tournament winners")
     
-    # If we don't have direct winner information, we'll use standings or best finish as a proxy
-    # For demonstration, let's assume the player with the best standing in each tournament is the winner
-    
-    # Check if we have a standings column
-    if 'standings_rank_2_scaled' in df.columns:
-        print("\nUsing 'standings_rank_2_scaled' to identify tournament winners")
+    # First priority: use hist_winner column if available
+    if 'hist_winner' in df.columns:
+        print("Using 'hist_winner' column to identify tournament winners")
         
-        # Group by tournament and find the player with the best (lowest) standing
-        winners = df.loc[df.groupby('tournament_id')['standings_rank_2_scaled'].idxmin()]
-        
-        # Create a binary target column
-        df['is_winner'] = 0
-        df.loc[winners.index, 'is_winner'] = 1
+        # Create binary target column
+        df['is_winner'] = df['hist_winner'].fillna(0).astype(int)
         
         # Check if we have a reasonable number of winners
         winner_count = df['is_winner'].sum()
@@ -198,52 +187,68 @@ def identify_winners(df):
         
         print(f"Identified {winner_count} winners across {tournament_count} tournaments")
         
-        if winner_count < tournament_count:
-            print(f"Warning: Only found winners for {winner_count}/{tournament_count} tournaments")
-            print("Some tournaments may not have a clear winner in the data")
-    else:
-        # If we don't have standings, create a synthetic winner based on available metrics
-        print("\nNo direct standings found. Creating synthetic winners using available metrics")
-        
-        # Use a combination of metrics to identify likely winners
-        # For example: high top10, low scoring average, high strokes gained
-        
-        # Create a 'winner_score' as a combination of important features
-        key_metrics = []
-        
-        if 'strokes_gained_scoring_sg_total_total_sg:t' in df.columns:
-            key_metrics.append('strokes_gained_scoring_sg_total_total_sg:t')
-        
-        if 'scoring_scoring_average_actual' in df.columns:
-            # Lower is better for scoring average, so we'll negate it
-            df['neg_scoring_avg'] = -df['scoring_scoring_average_actual']
-            key_metrics.append('neg_scoring_avg')
-        
-        if 'top10' in df.columns or 'top_10' in df.columns:
-            top10_col = 'top10' if 'top10' in df.columns else 'top_10'
-            key_metrics.append(top10_col)
-        
-        if key_metrics:
-            # Normalize each metric for equal weighting
-            for metric in key_metrics:
-                if metric in df.columns:
-                    df[f'{metric}_norm'] = (df[metric] - df[metric].min()) / (df[metric].max() - df[metric].min())
+        # If we don't have enough winners, fall back to hist_top3
+        if winner_count < tournament_count * 0.7:  # Less than 70% of tournaments have winners
+            print(f"Only found winners for {winner_count}/{tournament_count} tournaments")
+            print("Using hist_top3 as fallback for tournaments without winners")
             
-            # Create a composite score
-            norm_metrics = [f'{metric}_norm' for metric in key_metrics if f'{metric}_norm' in df.columns]
-            df['winner_score'] = df[norm_metrics].sum(axis=1)
+            # Get list of tournaments without winners
+            tournaments_with_winners = df[df['is_winner'] == 1]['tournament_id'].unique()
+            all_tournaments = df['tournament_id'].unique()
+            tournaments_without_winners = [t for t in all_tournaments if t not in tournaments_with_winners]
             
-            # Identify the winner in each tournament as the player with the highest winner_score
-            winners = df.loc[df.groupby('tournament_id')['winner_score'].idxmax()]
+            for tournament_id in tournaments_without_winners:
+                # Get tournament data
+                tournament_data = df[df['tournament_id'] == tournament_id]
+                
+                # Check if any player has hist_top3 = 1
+                top3_players = tournament_data[tournament_data['hist_top3'] == 1]
+                
+                if len(top3_players) > 0:
+                    # Select first top3 player as winner for this tournament
+                    winner_idx = top3_players.index[0]
+                    df.loc[winner_idx, 'is_winner'] = 1
+    
+    # If hist_winner column not available, use hist_top3 directly
+    elif 'hist_top3' in df.columns:
+        print("No 'hist_winner' column. Using 'hist_top3' column to identify tournament winners")
+        
+        # Group by tournament and get one top3 player per tournament
+        df['is_winner'] = 0
+        for tournament_id in df['tournament_id'].unique():
+            tournament_data = df[df['tournament_id'] == tournament_id]
+            top3_players = tournament_data[tournament_data['hist_top3'] == 1]
             
-            # Create binary target
-            df['is_winner'] = 0
-            df.loc[winners.index, 'is_winner'] = 1
+            if len(top3_players) > 0:
+                # Select first top3 player as winner for this tournament
+                winner_idx = top3_players.index[0]
+                df.loc[winner_idx, 'is_winner'] = 1
+    
+    # If neither column is available, use position_numeric if available
+    elif 'position_numeric' in df.columns:
+        print("Using 'position_numeric' to identify tournament winners")
+        
+        # Group by tournament and find the player with position_numeric = 1
+        winner_indices = []
+        for tournament_id in df['tournament_id'].unique():
+            tournament_data = df[df['tournament_id'] == tournament_id]
+            winners = tournament_data[tournament_data['position_numeric'] == 1]
             
-            print(f"Created synthetic winners for {len(winners)} tournaments using metrics: {key_metrics}")
-        else:
-            print("No suitable metrics found to identify winners. Please add a winner column to your dataset.")
-            df['is_winner'] = 0
+            if len(winners) > 0:
+                winner_indices.append(winners.index[0])
+        
+        df['is_winner'] = 0
+        if winner_indices:
+            df.loc[winner_indices, 'is_winner'] = 1
+    
+    # Check if we have a reasonable number of winners
+    winner_count = df['is_winner'].sum() if 'is_winner' in df.columns else 0
+    tournament_count = df['tournament_id'].nunique()
+    
+    print(f"Identified {winner_count} winners across {tournament_count} tournaments")
+    
+    if winner_count < tournament_count * 0.5:  # Less than half of tournaments have winners
+        print("Warning: Not enough winners identified. Results may be unreliable.")
     
     return df
 

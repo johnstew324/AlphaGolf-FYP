@@ -7,30 +7,29 @@ import asyncio
 
 # Pydantic models for course fit statistics, data, and dataset.
 class CourseFitStat(BaseModel):
-    header: str
-    value: Optional[float] = None
-    rank: Optional[int] = None
-    color: Optional[str] = None
+    header = ""
+    value = None
+    rank = None
+    color = None
     @validator('value', 'rank', pre=True)
     def handle_dash(cls, v):
         return None if v == '-' else v
 
 class PlayerCourseFit(BaseModel):
-    player_id: str
-    total_rounds: int
-    score: float
-    stats: List[CourseFitStat]
-
+    player_id = ""
+    total_rounds = 0
+    score = 0.0
+    stats = []
+    
 class CourseFitData(BaseModel):
-    tournament_id: str
-    field_stat_type: str
-    stat_headers: List[str]
-    players: List[PlayerCourseFit]
-    collected_at: datetime = Field(default_factory=datetime.utcnow)
-
-# Data scraper class for course fit statistics 
+    tournament_id = ""
+    field_stat_type = ""
+    stat_headers = []
+    players = []
+    collected_at = Field(default_factory=datetime.utcnow)
+    
 class CourseFitStatsScraper(BaseDataScraper):
-    def __init__(self, url: str, headers: Dict[str, str]):
+    def __init__(self, url, headers):
         super().__init__(url, headers)
         self.query = """
         query FieldStats($tournamentId: ID!, $fieldStatType: FieldStatType!) {
@@ -54,8 +53,7 @@ class CourseFitStatsScraper(BaseDataScraper):
         }
         """
 
-    # Parse and validate the API response
-    async def parse_response(self, response_data: Dict, tournament_id: str, field_stat_type: str) -> Optional[Dict]:
+    async def parse_response(self, response_data, tournament_id, field_stat_type):
         try:
             if not response_data or 'data' not in response_data:
                 self.logger.warning(f"No data found for tournament {tournament_id}")
@@ -105,9 +103,7 @@ class CourseFitStatsScraper(BaseDataScraper):
             self.logger.error(f"Error parsing course fit data: {str(e)}")
             return None
 
-        # Scrape course fit statistics for a tournament 
-        # retuns parsed and validated course fit statistics 
-    async def scrape_coursefit_stats(self, tournament_id: str, field_stat_type: str = "COURSE_FIT") -> Optional[Dict]:
+    async def scrape_coursefit_stats(self, tournament_id, field_stat_type = "COURSE_FIT"):
         try:
             self.logger.info(f"Fetching course fit stats for tournament {tournament_id}")
             
@@ -123,9 +119,7 @@ class CourseFitStatsScraper(BaseDataScraper):
             self.logger.error(f"Error scraping course fit stats: {str(e)}")
             return None
 
-    # Scrape course fit statistics for multiple tournaments concurrently
-    # returns a list of processed course fit statistics
-    async def scrape_multiple_tournaments(self, tournament_ids: List[str], field_stat_type: str = "COURSE_FIT") -> List[Dict]:
+    async def scrape_multiple_tournaments(self, tournament_ids, field_stat_type = "COURSE_FIT"):
         try:
             self.logger.info(f"Batch processing {len(tournament_ids)} tournaments")
             

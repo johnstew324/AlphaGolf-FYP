@@ -5,17 +5,6 @@ from typing import Dict, List, Optional, Union
 
 def create_player_course_interactions(player_features: pd.DataFrame, 
                                      course_features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create interaction features between player skills and course characteristics.
-    
-    Args:
-        player_features: DataFrame with player performance metrics
-        course_features: DataFrame with course characteristics
-        
-    Returns:
-        DataFrame with player-course interaction features
-    """
-    # Start with player_id column
     if 'player_id' not in player_features.columns:
         return pd.DataFrame()
         
@@ -96,17 +85,7 @@ def create_player_course_interactions(player_features: pd.DataFrame,
 
 def create_weather_adaptation_features(player_features: pd.DataFrame, 
                                      weather_features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create features that measure how well a player adapts to weather conditions.
     
-    Args:
-        player_features: DataFrame with player performance metrics
-        weather_features: DataFrame with weather data
-        
-    Returns:
-        DataFrame with weather adaptation features
-    """
-    # Start with player_id column
     if 'player_id' not in player_features.columns:
         return pd.DataFrame()
         
@@ -171,16 +150,6 @@ def create_weather_adaptation_features(player_features: pd.DataFrame,
 
 def create_form_history_interactions(current_form: pd.DataFrame, 
                                    tournament_history: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create features that combine current form with tournament history.
-    
-    Args:
-        current_form: DataFrame with current form metrics
-        tournament_history: DataFrame with tournament history data
-        
-    Returns:
-        DataFrame with form-history interaction features
-    """
     # Start with player_id column
     if 'player_id' not in current_form.columns:
         return pd.DataFrame()
@@ -253,15 +222,6 @@ def create_form_history_interactions(current_form: pd.DataFrame,
     return interactions
 
 def create_player_field_strength_features(player_features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create features that measure player strength relative to the tournament field.
-    
-    Args:
-        player_features: DataFrame with player performance metrics
-        
-    Returns:
-        DataFrame with field strength features
-    """
     # Start with player_id column
     if 'player_id' not in player_features.columns:
         return pd.DataFrame()
@@ -316,18 +276,6 @@ def create_meta_features(player_features: pd.DataFrame,
                        course_features: pd.DataFrame,
                        tournament_history: pd.DataFrame,
                        weather_features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create high-level meta-features combining multiple data sources.
-    
-    Args:
-        player_features: DataFrame with player performance metrics
-        course_features: DataFrame with course characteristics
-        tournament_history: DataFrame with tournament history data
-        weather_features: DataFrame with weather data
-        
-    Returns:
-        DataFrame with meta-features
-    """
     # Start with player_id column
     if 'player_id' not in player_features.columns:
         return pd.DataFrame()
@@ -464,20 +412,6 @@ def create_interaction_features(player_ids: List[str], tournament_id: str,
                               season: int, processors: Dict, 
                               base_features: pd.DataFrame,
                               temporal_features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create a comprehensive set of interaction features.
-    
-    Args:
-        player_ids: List of player IDs
-        tournament_id: The tournament ID
-        season: Current season
-        processors: Dictionary of processor instances
-        base_features: DataFrame with base features
-        temporal_features: DataFrame with temporal features
-        
-    Returns:
-        DataFrame with combined interaction features
-    """
     # If base_features is empty, we can't create interactions
     if base_features.empty:
         return pd.DataFrame({'player_id': player_ids})
@@ -570,16 +504,6 @@ def create_interaction_features(player_ids: List[str], tournament_id: str,
     return interaction_features
 
 def _merge_feature_sets(feature_sets: List[pd.DataFrame], on: str = 'player_id') -> pd.DataFrame:
-    """
-    Merge multiple feature sets intelligently, handling duplicates and conflicts.
-    
-    Args:
-        feature_sets: List of DataFrames to merge
-        on: Key column for merging
-        
-    Returns:
-        Merged DataFrame
-    """
     if not feature_sets:
         return pd.DataFrame()
     

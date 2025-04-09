@@ -5,19 +5,7 @@ from typing import Dict, List, Optional, Union
 
 def create_recent_performance_features(player_ids: List[str], tournament_id: str, 
                                       processors: Dict, window_size: int = 5) -> pd.DataFrame:
-    """
-    Create features based on recent tournament performance (last 5 tournaments).
-    
-    Args:
-        player_ids: List of player IDs
-        tournament_id: Current tournament ID
-        processors: Dictionary of processor instances
-        window_size: Number of recent tournaments to analyze (default: 5)
-        
-    Returns:
-        DataFrame with recent performance features
-    """
-    # Extract data from current_form processor (already contains last 5 tournaments)
+
     if 'current_form' in processors:
         current_form = processors['current_form'].extract_features(
             player_ids=player_ids,
@@ -34,25 +22,8 @@ def create_recent_performance_features(player_ids: List[str], tournament_id: str
 
 def create_consistency_features(player_ids: List[str], season: int, 
                               processors: Dict, window_size: int = 5) -> pd.DataFrame:
-    """
-    Create features measuring player consistency across tournaments.
-    
-    Args:
-        player_ids: List of player IDs
-        season: Current season
-        processors: Dictionary of processor instances
-        window_size: Number of tournaments to analyze for consistency
-        
-    Returns:
-        DataFrame with consistency features
-    """
-    # Try using tournament_history data first
+
     if 'tournament_history' in processors:
-        # Get player performance across multiple tournaments
-        # We'll need to identify tournaments from the current season
-        # This requires a more complex query than we can do directly
-        
-        # Alternative approach: use current_form which already has recent tournaments
         if 'current_form' in processors:
             current_form = processors['current_form'].extract_features(
                 player_ids=player_ids
@@ -68,19 +39,7 @@ def create_consistency_features(player_ids: List[str], season: int,
 
 def create_momentum_features(player_ids: List[str], tournament_id: str, 
                            processors: Dict, window_size: int = 5) -> pd.DataFrame:
-    """
-    Create features that capture player momentum (improvement/decline).
-    
-    Args:
-        player_ids: List of player IDs
-        tournament_id: Current tournament ID
-        processors: Dictionary of processor instances
-        window_size: Number of tournaments to analyze
-        
-    Returns:
-        DataFrame with momentum features
-    """
-    # Extract data from current_form processor
+
     if 'current_form' in processors:
         current_form = processors['current_form'].extract_features(
             player_ids=player_ids,
@@ -97,21 +56,7 @@ def create_momentum_features(player_ids: List[str], tournament_id: str,
 
 def create_strokes_gained_trends(player_ids: List[str], season: int, 
                                processors: Dict) -> pd.DataFrame:
-    """
-    Create features that track strokes gained trends over time.
-    
-    Args:
-        player_ids: List of player IDs
-        season: Current season
-        processors: Dictionary of processor instances
-        
-    Returns:
-        DataFrame with strokes gained trend features
-    """
-    # We need access to multiple tournaments' SG data
-    # This is more complicated since we'd need to query multiple tournaments
-    
-    # For simplicity, we'll use current_form which has recent SG values
+ 
     if 'current_form' in processors:
         current_form = processors['current_form'].extract_features(
             player_ids=player_ids
@@ -127,19 +72,7 @@ def create_strokes_gained_trends(player_ids: List[str], season: int,
 
 def create_temporal_features(player_ids: List[str], tournament_id: str, 
                            season: int, processors: Dict) -> pd.DataFrame:
-    """
-    Create a comprehensive set of temporal features.
-    
-    Args:
-        player_ids: List of player IDs
-        tournament_id: The tournament ID
-        season: Current season
-        processors: Dictionary of processor instances
-        
-    Returns:
-        DataFrame with combined temporal features
-    """
-    # Generate individual feature sets
+   
     recent_perf = create_recent_performance_features(player_ids, tournament_id, processors)
     consistency = create_consistency_features(player_ids, season, processors)
     momentum = create_momentum_features(player_ids, tournament_id, processors)
@@ -175,16 +108,7 @@ def create_temporal_features(player_ids: List[str], tournament_id: str,
     return temporal_features
 
 def _process_recent_form(current_form: pd.DataFrame, window_size: int = 5) -> pd.DataFrame:
-    """
-    Process current form data to extract temporal patterns from recent tournaments.
-    
-    Args:
-        current_form: DataFrame with current form data
-        window_size: Number of recent tournaments to analyze
-        
-    Returns:
-        DataFrame with recent performance patterns
-    """
+   
     # Start with player_id column
     if 'player_id' not in current_form.columns:
         return pd.DataFrame()
@@ -289,15 +213,7 @@ def _process_recent_form(current_form: pd.DataFrame, window_size: int = 5) -> pd
     return features
 
 def _calculate_consistency_metrics(current_form: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculate metrics that measure player consistency.
-    
-    Args:
-        current_form: DataFrame with current form data
-        
-    Returns:
-        DataFrame with consistency metrics
-    """
+  
     # Start with player_id column
     if 'player_id' not in current_form.columns:
         return pd.DataFrame()
@@ -366,15 +282,6 @@ def _calculate_consistency_metrics(current_form: pd.DataFrame) -> pd.DataFrame:
     return features
 
 def _calculate_momentum_metrics(current_form: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculate metrics that measure player momentum.
-    
-    Args:
-        current_form: DataFrame with current form data
-        
-    Returns:
-        DataFrame with momentum metrics
-    """
     # Start with player_id column
     if 'player_id' not in current_form.columns:
         return pd.DataFrame()
@@ -445,15 +352,7 @@ def _calculate_momentum_metrics(current_form: pd.DataFrame) -> pd.DataFrame:
     return features
 
 def _calculate_sg_trends(current_form: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculate strokes gained trend metrics.
-    
-    Args:
-        current_form: DataFrame with current form data
-        
-    Returns:
-        DataFrame with SG trend metrics
-    """
+  
     # Start with player_id column
     if 'player_id' not in current_form.columns:
         return pd.DataFrame()
@@ -479,16 +378,7 @@ def _calculate_sg_trends(current_form: pd.DataFrame) -> pd.DataFrame:
     return features
 
 def _merge_feature_sets(feature_sets: List[pd.DataFrame], on: str = 'player_id') -> pd.DataFrame:
-    """
-    Merge multiple feature sets intelligently, handling duplicates and conflicts.
-    
-    Args:
-        feature_sets: List of DataFrames to merge
-        on: Key column for merging
-        
-    Returns:
-        Merged DataFrame
-    """
+
     if not feature_sets:
         return pd.DataFrame()
     

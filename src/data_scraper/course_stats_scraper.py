@@ -162,7 +162,7 @@ class CourseStatsScraper(BaseDataScraper):
             return []
 
 
-    async def get_hole_details(self, tournament_id: str, course_id: str, hole_number: int) -> Optional[Dict]:
+    async def get_hole_details(self, tournament_id, course_id, hole_number)
         try:
             variables = {"tournamentId": tournament_id,
                 "courseId": course_id,
@@ -191,7 +191,7 @@ class CourseStatsScraper(BaseDataScraper):
             self.logger.error(f"Error getting hole details: {str(e)}")
             return None
 
-    async def scrape_course_stats(self, tournament_id: str, course_id: str) -> Optional[Dict]:
+    async def scrape_course_stats(self, tournament_id, course_id):
         try:
             variables = {"tournamentId": tournament_id}
             response_data = await self.make_request(self.course_stats_query, variables)
@@ -288,8 +288,7 @@ class CourseStatsScraper(BaseDataScraper):
                             }
                         }
                     }
-                    
-                # Add hole details
+
                     hole_detail = hole_details_cache.get(hole_number, {})
                     if hole_detail:
                         hole_data['about_this_hole'] = hole_detail.get('about_this_hole', '')
@@ -297,8 +296,7 @@ class CourseStatsScraper(BaseDataScraper):
                     round_data['holes'].append(hole_data)
                 
                 processed_data['rounds'].append(round_data)
-                
-        # Add course overview 
+ 
             overview = course_data.get('courseOverview', {})
             if overview:
                 processed_data['overview'] = {
@@ -325,8 +323,7 @@ class CourseStatsScraper(BaseDataScraper):
             self.logger.error(f"Error scraping course stats: {str(e)}")
             return None
 
-# Calculate summary statistics for the course
-    def calculate_course_summary(self, course_data: Dict) -> Dict:
+    def calculate_course_summary(self, course_data):
         total_stats = {
             'eagles': 0,
             'birdies': 0,
@@ -389,8 +386,7 @@ class CourseStatsScraper(BaseDataScraper):
         }
         
         
-# Test function to scrape course stats without storing in database
-    async def test_scrape_course_stats(self, tournament_id: str, course_id: str) -> Optional[Dict]:
+    async def test_scrape_course_stats(self, tournament_id, course_id):
         try:
             self.logger.info(f"Test scraping course stats for tournament {tournament_id}, course {course_id}")
             course_data = await self.scrape_course_stats(tournament_id, course_id)

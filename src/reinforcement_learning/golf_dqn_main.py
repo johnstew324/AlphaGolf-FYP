@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import seaborn as sns
 
 # Import our module
 from golf_tournament_dqn import (
@@ -151,74 +152,206 @@ def main():
     print("\nEvaluation Summary:")
     print(metrics_summary)
     
-    # Step 4: Generate visualizations
+     # Step 4: Generate visualizations
     print("\n" + "="*50)
     print("STEP 4: GENERATING VISUALIZATIONS")
     print("="*50)
+     # Plot winner-specific visualizations
+    plot_winner_prediction_results(test_predictions, output_dir)
+    plot_winner_prediction_results(holdout_predictions, output_dir) 
     
-    # Plot winner probability distribution
-    plt.figure(figsize=(10, 6))
+    # Create extended metrics visualization for all targets
+    target_names = ['hist_winner', 'hist_top3', 'hist_top10', 'hist_top25', 'hist_made_cut']
+    available_targets = [t for t in target_names if f'{t}_precision' in holdout_metrics]
     
-    # Test set winner probabilities
-    actual_winners_test = test_predictions[test_predictions['is_winner'] == 1]['win_probability']
-    plt.hist(actual_winners_test, bins=20, alpha=0.5, label='Test Winners')
+    if available_targets:
+        # Create a new visualization for target metrics
+        plt.figure(figsize=(12, 8))
+        
+        # Plot F1 scores for each target
+        metrics_to_plot = []
+        for target in available_targets:
+            metrics_to_plot.append({
+                'Target': target.replace('hist_', ''),
+                'Set': 'Test',
+                'Precision': test_metrics[f'{target}_precision'],
+                'Recall': test_metrics[f'{target}_recall'],
+                'F1': test_metrics[f'{target}_f1']
+            })
+            metrics_to_plot.append({
+                'Target': target.replace('hist_', ''),
+                'Set': 'Holdout',
+                'Precision': holdout_metrics[f'{target}_precision'],
+                'Recall': holdout_metrics[f'{target}_recall'],
+                'F1': holdout_metrics[f'{target}_f1']
+            })
+        
+        metrics_df = pd.DataFrame(metrics_to_plot)
+        
+        # Reshaping data for seaborn
+        melted_df = pd.melt(metrics_df, 
+                           id_vars=['Target', 'Set'], 
+                           value_vars=['Precision', 'Recall', 'F1'],
+                           var_name='Metric', value_name='Value')
+        
+        # Create grouped bar plot
+        sns.barplot(x='Target', y='Value', hue='Set', col='Metric', data=melted_df)
+        plt.title('Prediction Performance Across Target Levels')
+        plt.ylim(0, 1)
+        plt.grid(True, alpha=0.3)
+        plt.savefig(os.path.join(output_dir, 'target_metrics.png'))
+        
+        # Plot comparison of precision vs recall for each target
+        plt.figure(figsize=(12, 8))
+        plt.plot([test_metrics[f'{t}_recall'] for t in available_targets], 
+                [test_metrics[f'{t}_precision'] for t in available_targets], 
+                'o-', label='Test Set')
+        plt.plot([holdout_metrics[f'{t}_recall'] for t in available_targets], 
+                [holdout_metrics[f'{t}_precision'] for t in available_targets], 
+                's-', label='Holdout Set')
+        
+        # Add labels for each point
+        for i, target in enumerate(available_targets):
+            plt.annotate(target.replace('hist_', ''), 
+                        (test_metrics[f'{target}_recall'], test_metrics[f'{target}_precision']),
+                        xytext=(5, 5), textcoords='offset points')
+            plt.annotate(target.replace('hist_', ''), 
+                        (holdout_metrics[f'{target}_recall'], holdout_metrics[f'{target}_precision']),
+                        xytext=(5, 5), textcoords='offset points')
+        
+        plt.title('Precision vs Recall for Different Target Levels')
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.savefig(os.path.join(output_dir, 'precision_recall_curve.png'))
     
-    # Holdout set winner probabilities
-    actual_winners_holdout = holdout_predictions[holdout_predictions['is_winner'] == 1]['win_probability']
-    plt.hist(actual_winners_holdout, bins=20, alpha=0.5, label='Holdout Winners')
+    # Your existing visualizations...
     
-    plt.title('Distribution of Predicted Win Probabilities for Actual Winners')
-    plt.xlabel('Predicted Win Probability')
-    plt.ylabel('Count')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.savefig(os.path.join(output_dir, 'winner_probability_distribution.png'))
+    # Additional target-specific visualization:
+    if available_targets and 'position_numeric' in holdout_predictions.columns:
+        plt.figure(figsize=(10, 6))
+        
+        # Aggregate data
+        position_data = []
+        
+        # For test set
+        for pos in range(1, 11):
+            avg_prob = test_predictions[test_predictions['position_numeric'] == pos]['win_probability'].mean()
+            if not np.isnan(avg_prob):
+                position_data.append({
+                    'Position': pos,
+                    'Set': 'Test',
+                    'Win Probability': avg_prob
+                })
+        
+        # For holdout set
+        for pos in range(1, 11):
+            avg_prob = holdout_predictions[holdout_predictions['position_numeric'] == pos]['win_probability'].mean()
+            if not np.isnan(avg_prob):
+                position_data.append({
+                    'Position': pos,
+                    'Set': 'Holdout',
+                    'Win Probability': avg_prob
+                })
+        
+        # Convert to DataFrame and plot
+        position_df = pd.DataFrame(position_data)
+        sns.lineplot(x='Position', y='Win Probability', hue='Set', data=position_df, marker='o')
+        plt.title('Average Predicted Win Probability by Actual Position')
+        plt.xlabel('Actual Position')
+        plt.ylabel('Average Predicted Win Probability')
+        plt.grid(True, alpha=0.3)
+        plt.savefig(os.path.join(output_dir, 'position_vs_probability.png'))
+        
+        
+        
+        
+        
+        
+        
+def plot_winner_prediction_results(predictions_df, output_dir):
+    """
+    Create visualizations focused on winner prediction success
     
-    # Additional visualization: Top-N accuracy comparison
-    n_values = [1, 3, 5, 10]
-    test_acc = [test_metrics['accuracy'], test_metrics['top3_accuracy'], 
-                test_metrics['top5_accuracy'], test_metrics['top10_accuracy']]
-    holdout_acc = [holdout_metrics['accuracy'], holdout_metrics['top3_accuracy'], 
-                   holdout_metrics['top5_accuracy'], holdout_metrics['top10_accuracy']]
+    Parameters:
+    -----------
+    predictions_df : DataFrame
+        Prediction results with is_winner and predicted_rank columns
+    output_dir : str
+        Directory to save plots
+    """
+    # Create winner-specific visualizations
+    plt.figure(figsize=(12, 8))
     
-    plt.figure(figsize=(10, 6))
-    plt.plot(n_values, test_acc, 'o-', label='Test Set')
-    plt.plot(n_values, holdout_acc, 's-', label='Holdout Set')
-    plt.title('Top-N Accuracy Comparison')
-    plt.xlabel('N (Top-N Prediction)')
-    plt.ylabel('Accuracy')
-    plt.xticks(n_values)
-    plt.ylim(0, 1)
-    plt.grid(True, alpha=0.3)
-    plt.legend()
-    plt.savefig(os.path.join(output_dir, 'top_n_accuracy.png'))
+    # Distribution of predicted ranks for actual winners
+    winner_ranks = predictions_df[predictions_df['is_winner'] == 1]['predicted_rank']
     
-    # Visualize winner rank distribution
-    plt.figure(figsize=(10, 6))
-    
-    # Get winner ranks for test and holdout sets
-    winner_ranks_test = test_predictions[test_predictions['is_winner'] == 1]['predicted_rank']
-    winner_ranks_holdout = holdout_predictions[holdout_predictions['is_winner'] == 1]['predicted_rank']
-    
-    max_rank = max(winner_ranks_test.max() if not winner_ranks_test.empty else 0,
-                  winner_ranks_holdout.max() if not winner_ranks_holdout.empty else 0)
-    bins = min(20, int(max_rank))
-    
-    plt.hist(winner_ranks_test, bins=bins, alpha=0.5, label='Test Winners')
-    plt.hist(winner_ranks_holdout, bins=bins, alpha=0.5, label='Holdout Winners')
-    
+    plt.subplot(2, 2, 1)
+    sns.histplot(winner_ranks, bins=20, kde=True)
     plt.title('Distribution of Predicted Ranks for Actual Winners')
     plt.xlabel('Predicted Rank')
     plt.ylabel('Count')
+    plt.axvline(x=1, color='r', linestyle='--', label='Top Prediction')
+    plt.axvline(x=3, color='g', linestyle='--', label='Top 3')
+    plt.axvline(x=5, color='orange', linestyle='--', label='Top 5')
     plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.savefig(os.path.join(output_dir, 'winner_rank_distribution.png'))
     
-    # Print completion message
-    print("\n" + "="*50)
-    print("PROCESS COMPLETED SUCCESSFULLY")
-    print("="*50)
-    print(f"All outputs have been saved to: {output_dir}")
+    # Distribution of predicted probabilities for winners vs non-winners
+    plt.subplot(2, 2, 2)
+    sns.histplot(predictions_df[predictions_df['is_winner'] == 1]['win_probability'], 
+                color='green', alpha=0.5, label='Winners', kde=True)
+    sns.histplot(predictions_df[predictions_df['is_winner'] == 0]['win_probability'], 
+                color='red', alpha=0.5, label='Non-Winners', kde=True)
+    plt.title('Distribution of Predicted Win Probabilities')
+    plt.xlabel('Predicted Win Probability')
+    plt.ylabel('Count')
+    plt.legend()
+    
+    # Top-N accuracy visualization
+    plt.subplot(2, 2, 3)
+    n_values = list(range(1, 21))
+    accuracies = []
+    
+    for n in n_values:
+        # Calculate percentage of winners in top-n predictions
+        top_n_count = len(winner_ranks[winner_ranks <= n])
+        acc = top_n_count / len(winner_ranks) if len(winner_ranks) > 0 else 0
+        accuracies.append(acc)
+    
+    plt.plot(n_values, accuracies, 'o-')
+    plt.title('Top-N Accuracy for Winner Prediction')
+    plt.xlabel('N (Top-N Prediction)')
+    plt.ylabel('Accuracy')
+    plt.grid(True, alpha=0.3)
+    
+    # ROC-like curve for winner prediction
+    plt.subplot(2, 2, 4)
+    
+    # Sort players by win probability and calculate cumulative number of real winners
+    sorted_idx = predictions_df['win_probability'].sort_values(ascending=False).index
+    sorted_df = predictions_df.loc[sorted_idx].reset_index(drop=True)
+    
+    total_winners = sorted_df['is_winner'].sum()
+    total_players = len(sorted_df)
+    
+    cumulative_winners = np.cumsum(sorted_df['is_winner']) / total_winners if total_winners > 0 else 0
+    fraction_players = np.arange(1, total_players + 1) / total_players
+    
+    plt.plot(fraction_players, cumulative_winners)
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.title('Winner Concentration Curve')
+    plt.xlabel('Fraction of Players (Sorted by Predicted Probability)')
+    plt.ylabel('Fraction of Actual Winners')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'winner_prediction_analysis.png'))
+    plt.close()
+    
+    print(f"Winner prediction analysis plot saved to {output_dir}")
 
 if __name__ == "__main__":
     main()

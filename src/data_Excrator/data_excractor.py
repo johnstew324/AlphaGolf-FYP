@@ -13,28 +13,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class DataExtractor:
-    """
-    A class to extract and transform data from MongoDB collections for feature engineering.
-    """
-    
     def __init__(self, db_manager):
-        """
-        Initialize the DataExtractor with a DatabaseManager instance.
-        
-        Args:
-            db_manager: An instance of the DatabaseManager class
-        """
         self.db_manager = db_manager
         self.logger = logging.getLogger(__name__)
         self.logger.info("DataExtractor initialized")
     
-    def list_collections(self) -> List[str]:
-        """
-        List all available collections in the database.
-        
-        Returns:
-            List of collection names
-        """
+    def list_collections(self):
         try:
             collections = self.db_manager.client[self.db_manager.db.name].list_collection_names()
             self.logger.info(f"Found {len(collections)} collections")
@@ -43,42 +27,16 @@ class DataExtractor:
             self.logger.error(f"Failed to list collections: {str(e)}")
             return []
     
-    def get_collection_info(self, collection_name: str) -> Dict:
-        """
-        Get basic information about a collection.
-        
-        Args:
-            collection_name: Name of the collection
-            
-        Returns:
-            Dictionary with collection information
-        """
+    def get_collection_info(self, collection_name):
         try:
             return self.db_manager.get_collection_stats(collection_name)
         except Exception as e:
             self.logger.error(f"Failed to get collection info: {str(e)}")
             return {"error": str(e)}
     
-    def extract_player_stats(self, 
-                             seasons: Optional[Union[int, List[int]]] = None,
-                             player_ids: Optional[List[str]] = None,
-                             stat_categories: Optional[List[str]] = None) -> pd.DataFrame:
-        """
-        Extract player statistics from the player_stats collection.
-        
-        Args:
-            seasons: Season(s) to extract (e.g., 2023 or [2021, 2022, 2023])
-            player_ids: List of player IDs to filter by
-            stat_categories: List of stat categories to include (e.g., ['DRIVING', 'PUTTING'])
-            
-        Returns:
-            DataFrame with flattened player statistics
-        """
+    def extract_player_stats(self, seasons=None, player_ids=None, stat_categories=None):
         self.logger.info("Extracting player statistics")
-        
-        # Build the query based on parameters
         query = {}
-        
         if seasons:
             if isinstance(seasons, int):
                 query["season"] = seasons
@@ -89,7 +47,6 @@ class DataExtractor:
             query["player_id"] = {"$in": player_ids}
         
         try:
-            # Get the raw data from MongoDB
             player_stats_raw = self.db_manager.run_query("player_stats", query)
             
             if not player_stats_raw:
@@ -97,17 +54,14 @@ class DataExtractor:
                 return pd.DataFrame()
             
             self.logger.info(f"Found stats for {len(player_stats_raw)} player-seasons")
-            
-            # Process and flatten the data
+        
             flattened_data = self._flatten_player_stats(
                 player_stats_raw, 
                 categories=stat_categories
             )
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
+
             df = self._convert_player_stats_types(df)
             
             self.logger.info(f"Extracted player stats with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -119,32 +73,17 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
     
-    def extract_collection_to_df(self, 
-                                collection_name: str, 
-                                query: Dict = None, 
-                                projection: Dict = None) -> pd.DataFrame:
-        """
-        Generic method to extract any collection as a DataFrame.
-        
-        Args:
-            collection_name: Name of the collection to query.
-            query: MongoDB query to filter documents
-            projection: MongoDB projection to include/exclude fields
-            
-        Returns:
-            DataFrame with collection data
-        """
+    def extract_collection_to_df(self, collection_name, query=None,  projection=None):
         try:
             if query is None:
                 query = {}
                 
             results = self.db_manager.run_query(collection_name, query, projection)
-            
+        
             if not results:
                 self.logger.warning(f"No data found in {collection_name} for the given query")
                 return pd.DataFrame()
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(results)
             
             self.logger.info(f"Extracted {len(df)} records from {collection_name}")
@@ -157,47 +96,29 @@ class DataExtractor:
     def _flatten_player_stats(self, 
                              player_stats_raw: List[Dict], 
                              categories: Optional[List[str]] = None) -> List[Dict]:
-        """
-        Flatten the nested player stats structure into a list of dictionaries.
-        
-        Args:
-            player_stats_raw: List of player stats documents from MongoDB
-            categories: Optional list of categories to include
-            
-        Returns:
-            List of flattened dictionaries
-        """
         flattened_data = []
         
         for player_doc in player_stats_raw:
-            # Base player info
             player_base = {
                 "player_id": player_doc.get("player_id"),
                 "name": player_doc.get("name"),
                 "season": player_doc.get("season"),
                 "collected_at": player_doc.get("collected_at")
             }
-            
-            # Process stats
+        
             stats = player_doc.get("stats", {})
-            
-            # Filter categories if specified
             if categories:
                 stats = {k: v for k, v in stats.items() if k in categories}
-            
-            # Flatten each stat category
+
             flattened_stats = {}
             for category, stat_list in stats.items():
-                # Clean category name
+
                 clean_category = category.replace(", ", "_").lower()
                 
                 for stat in stat_list:
-                    # Create column name based on stat title
                     stat_title = stat.get("title", "")
                     stat_id = stat.get("stat_id", "")
                     
-                    # Clean the stat title to create a column name
-                    # Replace spaces and special chars with underscores
                     clean_title = stat_title.lower().replace(" ", "_").replace(":", "").replace("-", "_")
                     clean_title = clean_title.replace("(", "").replace(")", "").replace("%", "pct")
                     
@@ -221,43 +142,24 @@ class DataExtractor:
         
         return flattened_data
     
-    def _convert_player_stats_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert player stats columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with player stats
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
+    def _convert_player_stats_types(self, df):
         df_converted = df.copy()
         
-        # Convert columns that should be numeric
         for col in df_converted.columns:
-            # Skip non-numeric columns
             if col in ['player_id', 'name', 'collected_at']:
                 continue
-                
-            # Convert season to int
             if col == 'season':
                 df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce').astype('Int64')
                 continue
-            
-            # Handle columns with string values that should be numeric
             try:
-                # Check if the column contains percentage values
                 if df_converted[col].astype(str).str.contains('%').any():
-                    # Remove % and convert to float
+
                     df_converted[col] = df_converted[col].astype(str).str.replace('%', '').astype(float) / 100
-                
-                # Handle dollar amounts
+
                 elif df_converted[col].astype(str).str.contains('\\$').any():
-                    # Remove $ and commas, then convert to float
+
                     df_converted[col] = df_converted[col].astype(str).str.replace('[\\$,]', '', regex=True).astype(float)
-                
-                # Handle feet/inches format like "33' 4"
+
                 elif df_converted[col].astype(str).str.contains("'").any():
                     def feet_inches_to_inches(value):
                         try:
@@ -265,40 +167,24 @@ class DataExtractor:
                                 return value
                             if pd.isna(value) or value == '':
                                 return np.nan
-                            # Split feet and inches
                             parts = value.split("'")
                             feet = float(parts[0])
                             inches = float(parts[1]) if len(parts) > 1 and parts[1].strip() else 0
                             return feet * 12 + inches
                         except:
                             return np.nan
-                    
                     df_converted[col] = df_converted[col].apply(feet_inches_to_inches)
-                
-                # Try general numeric conversion for everything else
                 else:
                     df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
             
             except Exception as e:
-                # If conversion fails, leave as is
                 self.logger.debug(f"Could not convert column {col}: {str(e)}")
                 continue
         
         return df_converted
     
-    def sample_collection(self, collection_name: str, n: int = 1) -> List[Dict]:
-        """
-        Get sample documents from a collection.
-        
-        Args:
-            collection_name: Name of the collection
-            n: Number of samples to retrieve
-            
-        Returns:
-            List of sample documents
-        """
+    def sample_collection(self, collection_name, n):
         try:
-            # Use MongoDB sample aggregation
             pipeline = [{"$sample": {"size": n}}]
             samples = list(self.db_manager.db[collection_name].aggregate(pipeline))
             
@@ -308,7 +194,6 @@ class DataExtractor:
             return []
         
         
-        
         ## TOURNAMENT HISTORY 
         # Add these methods to your DataExtractor class
 
@@ -316,20 +201,9 @@ class DataExtractor:
                                 tournament_ids: Optional[Union[str, List[str]]] = None,
                                 years: Optional[Union[int, List[int]]] = None,
                                 player_ids: Optional[List[str]] = None) -> pd.DataFrame:
-        """
-        Extract tournament history data from the tournament_history collection.
         
-        Args:
-            tournament_ids: Tournament ID(s) to extract (e.g., 'R2025016' or ['R2025016', 'R2025003'])
-            years: Year(s) to extract (e.g., 2023 or [2021, 2022, 2023])
-            player_ids: List of player IDs to filter results by
-            
-        Returns:
-            DataFrame with tournament history data
-        """
         self.logger.info("Extracting tournament history")
-        
-        # Build the query based on parameters
+
         query = {}
         
         if tournament_ids:
@@ -345,7 +219,6 @@ class DataExtractor:
                 query["year"] = {"$in": years}
         
         try:
-            # Get the raw data from MongoDB
             history_raw = self.db_manager.run_query("tournament_history", query)
             
             if not history_raw:
@@ -354,17 +227,14 @@ class DataExtractor:
             
             self.logger.info(f"Found {len(history_raw)} tournament history records")
             
-            # Process the data based on whether we need to filter by player
             if player_ids:
                 self.logger.info(f"Filtering results for {len(player_ids)} players")
                 flattened_data = self._flatten_tournament_history_by_players(history_raw, player_ids)
             else:
                 flattened_data = self._flatten_tournament_history(history_raw)
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
+
             df = self._convert_tournament_history_types(df)
             
             self.logger.info(f"Extracted tournament history with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -376,21 +246,9 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def _flatten_tournament_history(self, history_raw: List[Dict]) -> List[Dict]:
-        """
-        Flatten the tournament history data structure by tournament.
-        Creates one row per tournament-year.
-        
-        Args:
-            history_raw: List of tournament history documents from MongoDB
-            
-        Returns:
-            List of flattened dictionaries
-        """
+    def _flatten_tournament_history(self, history_raw):
         flattened_data = []
-        
         for tournament_doc in history_raw:
-            # Base tournament info
             tournament_base = {
                 "tournament_id": tournament_doc.get("tournament_id"),
                 "original_tournament_id": tournament_doc.get("original_tournament_id"),
@@ -398,16 +256,9 @@ class DataExtractor:
                 "collected_at": tournament_doc.get("collected_at")
             }
             
-            # Add additional tournament metadata if available
-            # (This would depend on what other fields exist in your tournament history documents)
-            
-            # Extract player count and winner info
             players = tournament_doc.get("players", [])
             tournament_base["player_count"] = len(players)
-            
-            # Add winner info if available
             if players and len(players) > 0:
-                # Sort by position to ensure winner is first
                 sorted_players = sorted(players, key=lambda p: p.get("position", "999"))
                 if sorted_players[0].get("position") == "1":
                     winner = sorted_players[0]
@@ -420,51 +271,35 @@ class DataExtractor:
         
         return flattened_data
 
-    def _flatten_tournament_history_by_players(self, history_raw: List[Dict], player_ids: List[str]) -> List[Dict]:
-        """
-        Flatten the tournament history data structure by player performances.
-        Creates one row per player-tournament-year.
-        
-        Args:
-            history_raw: List of tournament history documents from MongoDB
-            player_ids: List of player IDs to filter by
-            
-        Returns:
-            List of flattened dictionaries
-        """
+    def _flatten_tournament_history_by_players(self, history_raw, player_ids):
         flattened_data = []
         
         for tournament_doc in history_raw:
-            # Base tournament info
+
             tournament_base = {
                 "tournament_id": tournament_doc.get("tournament_id"),
                 "original_tournament_id": tournament_doc.get("original_tournament_id"),
                 "year": tournament_doc.get("year"),
                 "collected_at": tournament_doc.get("collected_at")
             }
-            
-            # Extract player performances
+
             all_players = tournament_doc.get("players", [])
-            
-            # Filter by player_ids if provided
+
             if player_ids:
                 players = [p for p in all_players if p.get("player_id") in player_ids]
             else:
                 players = all_players
             
             for player in players:
-                # Create a player-specific entry
                 player_entry = tournament_base.copy()
                 
-                # Add player details
                 player_entry["player_id"] = player.get("player_id")
                 player_entry["player_name"] = player.get("name")
                 player_entry["position"] = player.get("position")
                 player_entry["country"] = player.get("country")
                 player_entry["total_score"] = player.get("total_score")
                 player_entry["score_to_par"] = player.get("par_relative")
-                
-                # Handle rounds data
+
                 rounds = player.get("rounds", [])
                 for i, round_data in enumerate(rounds):
                     round_num = i + 1
@@ -475,82 +310,47 @@ class DataExtractor:
         
         return flattened_data
 
-    def _convert_tournament_history_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert tournament history columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with tournament history
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
+    def _convert_tournament_history_types(self, df):
         df_converted = df.copy()
-        
-        # Convert numeric columns
         numeric_columns = [
             'year', 'player_count', 'winning_score', 'winning_score_to_par',
             'total_score', 'score_to_par'
         ]
         
-        # Add round score columns
-        for i in range(1, 5):  # Assuming maximum 4 rounds
+        for i in range(1, 5):  
             round_cols = [f'round{i}_score', f'round{i}_to_par']
             numeric_columns.extend(round_cols)
         
-        # Convert position to numeric when possible (handles "T1", "CUT", etc.)
         if 'position' in df_converted.columns:
             df_converted['position_numeric'] = df_converted['position'].apply(
                 lambda x: pd.to_numeric(x.replace('T', ''), errors='coerce') if isinstance(x, str) else x
             )
         
-        # Apply numeric conversion to columns that exist in the dataframe
         for col in [c for c in numeric_columns if c in df_converted.columns]:
             try:
                 df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
             except Exception as e:
                 self.logger.debug(f"Could not convert column {col}: {str(e)}")
         
-        # Convert year to integer if present
         if 'year' in df_converted.columns:
             df_converted['year'] = df_converted['year'].astype('Int64')
         
         return df_converted
 
-    def extract_tournament_performance_stats(self, 
-                                            player_id: str, 
-                                            min_years: int = 3) -> pd.DataFrame:
-        """
-        Extract tournament performance statistics for a specific player.
-        This creates aggregate stats across multiple years for each tournament.
-        
-        Args:
-            player_id: Player ID to analyze
-            min_years: Minimum number of appearances required to calculate stats
-            
-        Returns:
-            DataFrame with tournament performance statistics
-        """
+    def extract_tournament_performance_stats(self, player_id, min_years):
         self.logger.info(f"Extracting tournament performance stats for player {player_id}")
         
         try:
-            # Get all tournament history for this player
             player_history = self.extract_tournament_history(player_ids=[player_id])
-            
             if player_history.empty:
                 self.logger.warning(f"No tournament history found for player {player_id}")
                 return pd.DataFrame()
-            
-            # Group by tournament_id and calculate statistics
             grouped = player_history.groupby('tournament_id')
             
             tournament_stats = []
             
             for tournament_id, group in grouped:
-                # Only include tournaments with sufficient appearances
                 if len(group) >= min_years:
-                    # Calculate statistics
                     stats = {
                         'tournament_id': tournament_id,
                         'player_id': player_id,
@@ -580,38 +380,20 @@ class DataExtractor:
         
         
         # WEATHER DATA EXTRACTION
-    def extract_tournament_weather(self,
-                                tournament_ids: Optional[Union[str, List[str]]] = None,
-                                years: Optional[Union[int, List[int]]] = None) -> pd.DataFrame:
-        """
-        Extract tournament weather data from the tournament_weather collection.
-        
-        Args:
-            tournament_ids: Tournament ID(s) to extract (e.g., 'R2022003' or ['R2022003', 'R2022016'])
-            years: Year(s) to extract (e.g., 2022 or [2021, 2022, 2023])
-            
-        Returns:
-            DataFrame with tournament weather data
-        """
+    def extract_tournament_weather(self,tournament_ids=None,years=None):
         self.logger.info("Extracting tournament weather data")
-        
-        # Build the query based on parameters
         query = {}
-        
         if tournament_ids:
             if isinstance(tournament_ids, str):
                 query["tournament_id"] = tournament_ids
             else:
                 query["tournament_id"] = {"$in": tournament_ids}
-        
         if years:
             if isinstance(years, int):
                 query["year"] = years
             else:
                 query["year"] = {"$in": years}
-        
         try:
-            # Get the raw data from MongoDB
             weather_raw = self.db_manager.run_query("tournament_weather", query)
             
             if not weather_raw:
@@ -620,11 +402,9 @@ class DataExtractor:
             
             self.logger.info(f"Found weather data for {len(weather_raw)} tournaments")
             
-            # Process and flatten the data
             flattened_data = []
             
             for weather_doc in weather_raw:
-                # Extract tournament-level data
                 tournament_base = {
                     "tournament_id": weather_doc.get("tournament_id"),
                     "tournament_name": weather_doc.get("tournament_name"),
@@ -633,38 +413,22 @@ class DataExtractor:
                     "location": weather_doc.get("location"),
                     "collected_at": weather_doc.get("collected_at")
                 }
-                
-                # Process round-by-round weather data
                 rounds_data = weather_doc.get("rounds", [])
-                
                 if rounds_data:
-                    # Two approaches possible:
-                    # 1. Flatten to one row per tournament with round weather in columns
-                    # 2. Create one row per round
-                    
-                    # Using approach 1: one row per tournament with round columns
                     for i, round_data in enumerate(rounds_data):
                         round_num = i + 1
                         
-                        # Add each weather measure as a column with round number prefix
                         for weather_key, weather_value in round_data.items():
                             column_name = f"round{round_num}_{weather_key}"
                             tournament_base[column_name] = weather_value
                     
-                    # Calculate tournament averages for key weather metrics
                     self._add_tournament_weather_averages(tournament_base, rounds_data)
-                    
                     flattened_data.append(tournament_base)
                 else:
-                    # If no rounds data, just add the tournament base info
                     flattened_data.append(tournament_base)
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
             df = self._convert_weather_types(df)
-            
             self.logger.info(f"Extracted tournament weather with {df.shape[0]} rows and {df.shape[1]} columns")
             return df
             
@@ -674,22 +438,8 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def extract_tournament_weather_by_round(self,
-                                        tournament_ids: Optional[Union[str, List[str]]] = None,
-                                        years: Optional[Union[int, List[int]]] = None) -> pd.DataFrame:
-        """
-        Extract tournament weather data with one row per round.
-        
-        Args:
-            tournament_ids: Tournament ID(s) to extract
-            years: Year(s) to extract
-            
-        Returns:
-            DataFrame with tournament weather data, one row per round
-        """
+    def extract_tournament_weather_by_round(self, tournament_ids=None, years=None):
         self.logger.info("Extracting tournament weather data by round")
-        
-        # Build the query based on parameters
         query = {}
         
         if tournament_ids:
@@ -697,28 +447,21 @@ class DataExtractor:
                 query["tournament_id"] = tournament_ids
             else:
                 query["tournament_id"] = {"$in": tournament_ids}
-        
         if years:
             if isinstance(years, int):
                 query["year"] = years
             else:
                 query["year"] = {"$in": years}
-        
         try:
-            # Get the raw data from MongoDB
             weather_raw = self.db_manager.run_query("tournament_weather", query)
             
             if not weather_raw:
                 self.logger.warning("No tournament weather data found for the given criteria")
                 return pd.DataFrame()
-            
+    
             self.logger.info(f"Found weather data for {len(weather_raw)} tournaments")
-            
-            # Process and flatten the data
             flattened_data = []
-            
             for weather_doc in weather_raw:
-                # Extract tournament-level data
                 tournament_base = {
                     "tournament_id": weather_doc.get("tournament_id"),
                     "tournament_name": weather_doc.get("tournament_name"),
@@ -727,25 +470,18 @@ class DataExtractor:
                     "location": weather_doc.get("location"),
                     "collected_at": weather_doc.get("collected_at")
                 }
-                
-                # Process round-by-round weather data
                 rounds_data = weather_doc.get("rounds", [])
                 
                 for i, round_data in enumerate(rounds_data):
-                    # Create a new entry for each round
                     round_entry = tournament_base.copy()
                     round_entry["round_number"] = i + 1
                     
-                    # Add all weather data for this round
                     for weather_key, weather_value in round_data.items():
                         round_entry[weather_key] = weather_value
                     
                     flattened_data.append(round_entry)
-            
-            # Convert to DataFrame
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
+        
             df = self._convert_weather_types(df)
             
             self.logger.info(f"Extracted tournament weather by round with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -758,87 +494,51 @@ class DataExtractor:
             return pd.DataFrame()
 
     def _add_tournament_weather_averages(self, tournament_data: Dict, rounds_data: List[Dict]) -> None:
-        """
-        Calculate and add tournament average weather metrics.
-        
-        Args:
-            tournament_data: Dictionary to update with averages
-            rounds_data: List of round weather data
-        """
-        # Key metrics to average across rounds
-        key_metrics = [
-            "temp", "tempmax", "tempmin", "humidity", "windspeed", 
-            "windgust", "cloudcover", "precip", "precipprob"
-        ]
-        
+        key_metrics = ["temp", "tempmax", "tempmin", "humidity", "windspeed", "windgust", "cloudcover", "precip", "precipprob"]
         for metric in key_metrics:
-            # Calculate average if the metric exists in the rounds data
             values = [round_data.get(metric) for round_data in rounds_data if metric in round_data]
             if values:
                 tournament_data[f"avg_{metric}"] = sum(values) / len(values)
         
-        # Calculate additional metrics
-        # Most common conditions
         conditions = [round_data.get("conditions") for round_data in rounds_data if "conditions" in round_data]
         if conditions:
             from collections import Counter
             conditions_counter = Counter(conditions)
             tournament_data["most_common_conditions"] = conditions_counter.most_common(1)[0][0]
             
-        # Total precipitation
         precip_values = [round_data.get("precip", 0) for round_data in rounds_data]
         if precip_values:
             tournament_data["total_precip"] = sum(precip_values)
 
     def _convert_weather_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert weather data columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with weather data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
         df_converted = df.copy()
-        
-        # Non-numeric columns
-        non_numeric_cols = [
-            'tournament_id', 'tournament_name', 'course_name', 'location', 
-            'collected_at', 'most_common_conditions'
-        ]
-        
-        # Time columns to convert to datetime
+
+        non_numeric_cols = [ 'tournament_id', 'tournament_name', 'course_name', 'location', 'collected_at', 'most_common_conditions' ]
+    
         time_cols = ['collected_at']
-        
-        # Add round date and time columns to the time column list
+
         time_pattern_cols = [col for col in df_converted.columns if any(
             pattern in col for pattern in ['datetime', 'sunrise', 'sunset']
         )]
         time_cols.extend(time_pattern_cols)
         
-        # Convert time columns to datetime where possible
         for col in time_cols:
             if col in df_converted.columns:
                 try:
                     if 'sunrise' in col or 'sunset' in col:
-                        # For time-only columns
-                        pass  # Keep as string for now as these are time strings without dates
+
+                        pass 
                     elif 'datetime' in col:
-                        # For date columns
                         df_converted[col] = pd.to_datetime(df_converted[col])
                     else:
-                        # For full datetime columns like collected_at
                         df_converted[col] = pd.to_datetime(df_converted[col])
                 except Exception as e:
                     self.logger.debug(f"Could not convert {col} to datetime: {str(e)}")
         
-        # Convert year to integer if present
+
         if 'year' in df_converted.columns:
             df_converted['year'] = df_converted['year'].astype('Int64')
         
-        # Convert round number to integer if present
         if 'round_number' in df_converted.columns:
             df_converted['round_number'] = df_converted['round_number'].astype('Int64')
         
@@ -859,22 +559,10 @@ class DataExtractor:
 
 
 
-    def extract_player_career(self,
-                            player_ids: Optional[List[str]] = None,
-                            tour_code: str = "R") -> pd.DataFrame:
-        """
-        Extract player career data from the player_career collection.
-        
-        Args:
-            player_ids: List of player IDs to extract. If None, extracts all players.
-            tour_code: Tour code to filter by (default: "R" for PGA Tour)
-            
-        Returns:
-            DataFrame with player career information
-        """
+    def extract_player_career(self, player_ids = None,tour_code = "R"):
         self.logger.info("Extracting player career data")
         
-        # Build the query based on parameters
+
         query = {}
         
         if player_ids:
@@ -884,7 +572,6 @@ class DataExtractor:
             query["tour_code"] = tour_code
         
         try:
-            # Get the raw data from MongoDB
             career_raw = self.db_manager.run_query("player_career", query)
             
             if not career_raw:
@@ -892,14 +579,11 @@ class DataExtractor:
                 return pd.DataFrame()
             
             self.logger.info(f"Found career data for {len(career_raw)} players")
-            
-            # Process and flatten the data
+
             flattened_data = self._flatten_player_career(career_raw)
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
+
             df = self._convert_player_career_types(df)
             
             self.logger.info(f"Extracted player career data with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -911,24 +595,8 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
         
-    def extract_player_career_yearly(self, 
-                                player_ids: Optional[List[str]] = None,
-                                years: Optional[Union[int, List[int]]] = None,
-                                tour_code: str = "R") -> pd.DataFrame:
-        """
-        Extract player career data by year from the yearly records in player_career collection.
-        
-        Args:
-            player_ids: List of player IDs to extract
-            years: Year(s) to extract (e.g., 2023 or [2021, 2022, 2023])
-            tour_code: Tour code to filter by (default: "R" for PGA Tour)
-            
-        Returns:
-            DataFrame with player career data by year
-        """
+    def extract_player_career_yearly(self, player_ids = None,years = None,tour_code = "R"):
         self.logger.info("Extracting player career yearly data")
-        
-        # Build the query based on parameters
         query = {}
         
         if player_ids:
@@ -938,7 +606,6 @@ class DataExtractor:
             query["tour_code"] = tour_code
         
         try:
-            # Get the raw data from MongoDB
             career_raw = self.db_manager.run_query("player_career", query)
             
             if not career_raw:
@@ -946,35 +613,26 @@ class DataExtractor:
                 return pd.DataFrame()
             
             self.logger.info(f"Found career data for {len(career_raw)} players")
-            
-            # Process and flatten yearly data
             flattened_yearly_data = []
             
             for career_doc in career_raw:
                 player_id = career_doc.get("player_id")
                 years_data = career_doc.get("years", [])
-                
-                # Filter by year if specified
+
                 if years:
                     if isinstance(years, int):
                         years_data = [y for y in years_data if y.get("year") == years]
                     else:
                         years_data = [y for y in years_data if y.get("year") in years]
-                
-                # Process each year's data
                 for year_data in years_data:
-                    # Copy the year data and add player_id
                     year_entry = {**year_data, "player_id": player_id}
                     flattened_yearly_data.append(year_entry)
             
             if not flattened_yearly_data:
                 self.logger.warning("No yearly data found for the given criteria")
                 return pd.DataFrame()
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_yearly_data)
-            
-            # Apply data type conversions
             df = self._convert_player_yearly_types(df)
             
             self.logger.info(f"Extracted player yearly data with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -986,20 +644,10 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def _flatten_player_career(self, career_raw: List[Dict]) -> List[Dict]:
-        """
-        Flatten the player career data structure.
-        
-        Args:
-            career_raw: List of player career documents from MongoDB
-            
-        Returns:
-            List of flattened dictionaries
-        """
+    def _flatten_player_career(self, career_raw):
         flattened_data = []
         
         for career_doc in career_raw:
-            # Create a baseline dictionary with main fields
             player_data = {
                 "player_id": career_doc.get("player_id"),
                 "tour_code": career_doc.get("tour_code"),
@@ -1016,25 +664,20 @@ class DataExtractor:
                 "top25": career_doc.get("top25"),
                 "official_money": career_doc.get("official_money")
             }
-            
-            # Process achievements
+
             achievements = career_doc.get("achievements", [])
             for achievement in achievements:
-                # Clean the title to create a column name
                 title = achievement.get("title", "").lower().replace(" ", "_")
                 value = achievement.get("value", "")
-                # Add to the data
+
                 player_data[f"achievement_{title}"] = value
             
-            # Process tables (like National Teams)
             tables = career_doc.get("tables", [])
             for table in tables:
                 table_name = table.get("table_name", "").lower().replace(" ", "_")
                 rows = table.get("rows", [])
-                
-                # Only process if there are rows
+
                 if rows:
-                    # Join row contents for this table
                     row_contents = []
                     for row in rows:
                         row_title = row.get("row_title", "")
@@ -1042,13 +685,11 @@ class DataExtractor:
                         if row_title and row_content:
                             row_contents.append(f"{row_title}: {row_content}")
                     
-                    # Add to the data
                     player_data[f"table_{table_name}"] = ", ".join(row_contents)
             
-            # Career span calculation from years data
+
             years_data = career_doc.get("years", [])
             if years_data:
-                # Extract years
                 active_years = [y.get("year") for y in years_data if y.get("year") is not None]
                 
                 if active_years:
@@ -1060,106 +701,59 @@ class DataExtractor:
         
         return flattened_data
 
-    def _convert_player_career_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert player career columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with player career data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
+    def _convert_player_career_types(self, df):
         df_converted = df.copy()
-        
-        # String columns to keep as is
         string_cols = ['player_id', 'tour_code', 'collected_at']
-        
-        # Money columns
         money_cols = [col for col in df_converted.columns if 'money' in col.lower() or 'earnings' in col.lower()]
-        
-        # Convert numeric columns
+
         for col in df_converted.columns:
-            # Skip string columns
             if col in string_cols:
                 continue
             
             try:
-                # Handle money columns
                 if col in money_cols:
                     if df_converted[col].dtype == 'object':
-                        # Remove $ and commas, then convert to float
                         df_converted[col] = df_converted[col].astype(str).str.replace('[\\$,]', '', regex=True)
                         df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                
-                # Handle fraction columns like "16/45" for cuts made
+
                 elif df_converted[col].astype(str).str.contains('/').any():
-                    # Create two columns for numerator and denominator
                     fractions = df_converted[col].astype(str).str.split('/', expand=True)
                     if len(fractions.columns) == 2:
                         df_converted[f"{col}_numerator"] = pd.to_numeric(fractions[0], errors='coerce')
                         df_converted[f"{col}_denominator"] = pd.to_numeric(fractions[1], errors='coerce')
-                        
-                        # Calculate percentage
+
                         df_converted[f"{col}_pct"] = df_converted[f"{col}_numerator"] / df_converted[f"{col}_denominator"]
-                
-                # Try general numeric conversion for everything else
+
                 else:
                     df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
             
             except Exception as e:
-                # If conversion fails, leave as is
                 self.logger.debug(f"Could not convert column {col}: {str(e)}")
                 continue
         
         return df_converted
 
-    def _convert_player_yearly_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert player yearly data columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with player yearly data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
+    def _convert_player_yearly_types(self, df):
         df_converted = df.copy()
-        
-        # String columns to keep as is
         string_cols = ['player_id', 'tour_code', 'display_season']
-        
-        # Money columns
         money_cols = [col for col in df_converted.columns if 'money' in col.lower() or 'earnings' in col.lower()]
-        
-        # Convert numeric columns
         for col in df_converted.columns:
-            # Skip string columns
             if col in string_cols:
                 continue
             
             try:
-                # Handle money columns
                 if col in money_cols:
                     if df_converted[col].dtype == 'object':
-                        # Check if it's a placeholder like "-"
                         df_converted[col] = df_converted[col].replace('-', None)
-                        # Remove $ and commas, then convert to float
                         df_converted[col] = df_converted[col].astype(str).str.replace('[\\$,]', '', regex=True)
                         df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                
-                # Try general numeric conversion for everything else
                 else:
-                    # Replace placeholders
                     if df_converted[col].dtype == 'object':
                         df_converted[col] = df_converted[col].replace('-', None)
                     
                     df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
             
             except Exception as e:
-                # If conversion fails, leave as is
                 self.logger.debug(f"Could not convert column {col}: {str(e)}")
                 continue
         
@@ -1169,27 +763,14 @@ class DataExtractor:
     
     ### PLAYER CAREER OVERVIEW
     
-    def extract_player_profile(self,
-                           player_ids: Optional[List[str]] = None) -> pd.DataFrame:
-        """
-        Extract player profile overview data from the player_profile_overview collection.
-        
-        Args:
-            player_ids: List of player IDs to extract. If None, extracts all players.
-            
-        Returns:
-            DataFrame with player profile overview information
-        """
+    def extract_player_profile(self, player_ids = None):
         self.logger.info("Extracting player profile overview data")
-        
-        # Build the query based on parameters
         query = {}
         
         if player_ids:
             query["player_id"] = {"$in": player_ids}
         
         try:
-            # Get the raw data from MongoDB
             profile_raw = self.db_manager.run_query("player_profile_overview", query)
             
             if not profile_raw:
@@ -1197,14 +778,9 @@ class DataExtractor:
                 return pd.DataFrame()
             
             self.logger.info(f"Found profile data for {len(profile_raw)} players")
-            
-            # Process and flatten the data
             flattened_data = self._flatten_player_profile(profile_raw)
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_data)
-            
-            # Apply data type conversions
             df = self._convert_player_profile_types(df)
             
             self.logger.info(f"Extracted player profile data with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -1216,31 +792,14 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def extract_player_performance(self,
-                                player_ids: Optional[List[str]] = None,
-                                tours: Optional[List[str]] = None,
-                                seasons: Optional[List[Union[str, int]]] = None) -> pd.DataFrame:
-        """
-        Extract player season performance data from the player_profile_overview collection.
-        
-        Args:
-            player_ids: List of player IDs to extract
-            tours: List of tour codes to filter by (e.g., ['R', 'H'])
-            seasons: List of seasons to filter by
-            
-        Returns:
-            DataFrame with player performance data by season and tour
-        """
+    def extract_player_performance(self,player_ids = None,tours = None,seasons = None):
         self.logger.info("Extracting player performance data")
-        
-        # Build the query based on parameters
+
         query = {}
-        
         if player_ids:
             query["player_id"] = {"$in": player_ids}
         
         try:
-            # Get the raw data from MongoDB
             profile_raw = self.db_manager.run_query("player_profile_overview", query)
             
             if not profile_raw:
@@ -1248,31 +807,25 @@ class DataExtractor:
                 return pd.DataFrame()
             
             self.logger.info(f"Found profile data for {len(profile_raw)} players")
-            
-            # Process and flatten the performance data
             flattened_perf_data = []
             
             for profile_doc in profile_raw:
                 player_id = profile_doc.get("player_id")
                 player_name = f"{profile_doc.get('first_name', '')} {profile_doc.get('last_name', '')}".strip()
                 country = profile_doc.get("country")
-                
-                # Extract performance data
+
                 performance_data = profile_doc.get("performance", [])
                 
                 for perf in performance_data:
                     tour = perf.get("tour")
                     season = perf.get("season")
                     display_season = perf.get("display_season")
-                    
-                    # Apply filters if specified
                     if tours and tour not in tours:
                         continue
                         
                     if seasons and season not in seasons:
                         continue
-                    
-                    # Create base entry
+
                     perf_entry = {
                         "player_id": player_id,
                         "player_name": player_name,
@@ -1281,15 +834,12 @@ class DataExtractor:
                         "season": season,
                         "display_season": display_season
                     }
-                    
-                    # Process stats
+
                     stats = perf.get("stats", [])
                     for stat in stats:
                         title = stat.get("title", "").lower().replace(" ", "_")
                         value = stat.get("value")
                         career = stat.get("career")
-                        
-                        # Add to entry
                         perf_entry[f"{title}"] = value
                         perf_entry[f"{title}_career"] = career
                     
@@ -1298,11 +848,8 @@ class DataExtractor:
             if not flattened_perf_data:
                 self.logger.warning("No performance data found after filtering")
                 return pd.DataFrame()
-            
-            # Convert to DataFrame
+
             df = pd.DataFrame(flattened_perf_data)
-            
-            # Apply data type conversions
             df = self._convert_player_performance_types(df)
             
             self.logger.info(f"Extracted player performance data with {df.shape[0]} rows and {df.shape[1]} columns")
@@ -1314,20 +861,10 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def _flatten_player_profile(self, profile_raw: List[Dict]) -> List[Dict]:
-        """
-        Flatten the player profile overview data structure.
-        
-        Args:
-            profile_raw: List of player profile documents from MongoDB
-            
-        Returns:
-            List of flattened dictionaries
-        """
+    def _flatten_player_profile(self, profile_raw):
         flattened_data = []
         
         for profile_doc in profile_raw:
-            # Create a baseline dictionary with main fields
             player_data = {
                 "player_id": profile_doc.get("player_id"),
                 "first_name": profile_doc.get("first_name"),
@@ -1450,57 +987,37 @@ class DataExtractor:
         
         return df_converted
 
-    def _convert_player_performance_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert player performance columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with player performance data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
+    def _convert_player_performance_types(self, df):
         df_converted = df.copy()
         
-        # String columns to keep as is
         string_cols = [
             'player_id', 'player_name', 'country', 'tour', 'display_season'
         ]
         
-        # Money columns
         money_cols = [col for col in df_converted.columns if 'earnings' in col.lower()]
-        
-        # Convert numeric columns
+
         for col in df_converted.columns:
-            # Skip string columns
             if col in string_cols:
                 continue
             
             try:
-                # Handle money columns
                 if col in money_cols:
                     if df_converted[col].dtype == 'object':
-                        # Replace placeholders
                         df_converted[col] = df_converted[col].replace('-', None)
-                        # Remove $ and commas, then convert to float
                         df_converted[col] = df_converted[col].astype(str).str.replace('[\\$,]', '', regex=True)
                         df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
                 
-                # Handle season column specially
                 elif col == 'season':
                     df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
-                
-                # Try general numeric conversion for everything else
+
                 else:
-                    # Replace placeholders
                     if df_converted[col].dtype == 'object':
                         df_converted[col] = df_converted[col].replace('-', None)
                     
                     df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce')
             
             except Exception as e:
-                # If conversion fails, leave as is
+
                 self.logger.debug(f"Could not convert column {col}: {str(e)}")
                 continue
         
@@ -1509,21 +1026,8 @@ class DataExtractor:
     
     
     #COURSE_STATS EXTRACTIN
-    def extract_course_stats(self,
-                            tournament_ids: Optional[Union[str, List[str]]] = None,
-                            course_ids: Optional[Union[str, List[str]]] = None,
-                            years: Optional[Union[int, List[int]]] = None) -> pd.DataFrame:
-        """
-        Extract course statistics from the course_stats collection.
-        
-        Args:
-            tournament_ids: Tournament ID(s) to extract
-            course_ids: Course ID(s) to extract
-            years: Year(s) to extract (derived from tournament_id)
-            
-        Returns:
-            DataFrame with course statistics
-        """
+    def extract_course_stats(self,tournament_ids = None,course_ids = None,years= None):
+    
         self.logger.info("Extracting course statistics")
         
         # Build the query based on parameters
@@ -2248,16 +1752,6 @@ class DataExtractor:
         return flattened_data
     
     def _convert_course_fit_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert course fit columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with course fit data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
         df_converted = df.copy()
         
         # Convert numeric columns
@@ -2276,19 +1770,7 @@ class DataExtractor:
         
         return df_converted
 
-    def extract_tournament_history_stats(self, 
-                                      tournament_id: Optional[str] = None,
-                                      player_ids: Optional[List[str]] = None) -> pd.DataFrame:
-        """
-        Extract tournament history stats from the tournament_history_stats collection.
-        
-        Args:
-            tournament_id: Tournament ID to filter by
-            player_ids: List of player IDs to filter by
-            
-        Returns:
-            DataFrame with player tournament history data
-        """
+    def extract_tournament_history_stats(self,  tournament_id: Optional[str] = None,player_ids: Optional[List[str]] = None) -> pd.DataFrame:
         self.logger.info("Extracting tournament history stats")
         
         # Build the query based on parameters
@@ -2524,32 +2006,14 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def extract_player_hole_scores(self,
-                                tournament_ids: Optional[Union[str, List[str]]] = None,
-                                player_ids: Optional[Union[str, List[str]]] = None,
-                                round_numbers: Optional[Union[int, List[int]]] = None,
-                                hole_numbers: Optional[Union[int, List[int]]] = None) -> pd.DataFrame:
-        """
-        Extract hole-by-hole scorecard data from the scorecards collection.
-        
-        Args:
-            tournament_ids: Tournament ID(s) to extract
-            player_ids: Player ID(s) to extract
-            round_numbers: Round number(s) to filter by
-            hole_numbers: Hole number(s) to filter by
-            
-        Returns:
-            DataFrame with hole-by-hole scorecard data
-        """
+    def extract_player_hole_scores(self, tournament_ids=None,player_ids=None,round_numbers=None,hole_numbers=None):
+
         self.logger.info("Extracting hole-by-hole scorecard data")
-        
-        # Build the query based on parameters
+
         query = {}
         
         if tournament_ids:
-            # Handle tournament ID format in the database
             if isinstance(tournament_ids, str):
-                # Look for IDs that start with the tournament ID followed by a dash
                 query["id"] = {"$regex": f"^{tournament_ids}-"}
             else:
                 # If multiple tournament IDs, create a regex pattern for each
@@ -2563,7 +2027,6 @@ class DataExtractor:
                 query["player_id"] = {"$in": player_ids}
         
         try:
-            # Get the raw data from MongoDB
             scorecards_raw = self.db_manager.run_query("scorecards", query)
             
             if not scorecards_raw:
@@ -2800,10 +2263,7 @@ class DataExtractor:
         df_converted = df.copy()
         
         # String columns to keep as is
-        string_cols = [
-            'tournament_id', 'tournament_name', 'player_id', 'player_name',
-            'player_country', 'player_state', 'course_name', 'collected_at'
-        ]
+        string_cols = ['tournament_id', 'tournament_name', 'player_id', 'player_name','player_country', 'player_state', 'course_name', 'collected_at']
         
         # Boolean columns
         bool_cols = ['complete', 'is_current_round']
@@ -2846,40 +2306,21 @@ class DataExtractor:
         return df_converted
 
     def _convert_hole_score_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Convert hole score columns to appropriate data types.
-        
-        Args:
-            df: DataFrame with hole score data
-            
-        Returns:
-            DataFrame with converted data types
-        """
-        # Make a copy to avoid modifying the original
         df_converted = df.copy()
-        
-        # String columns to keep as is
-        string_cols = [
-            'tournament_id', 'tournament_name', 'player_id', 'player_name',
-            'player_country', 'course_name', 'hole_status', 'nine', 'collected_at'
-        ]
-        
-        # Boolean columns
+
+        string_cols = ['tournament_id', 'tournament_name', 'player_id', 'player_name','player_country', 'course_name', 'hole_status', 'nine', 'collected_at' ]
+
         bool_cols = ['complete', 'is_current_round']
-        
-        # Convert boolean columns
+
         for col in bool_cols:
             if col in df_converted.columns:
                 df_converted[col] = df_converted[col].astype(bool)
-        
-        # Convert integer columns
         int_cols = ['round_number', 'hole_number', 'hole_par', 'hole_yardage']
         
         for col in int_cols:
             if col in df_converted.columns:
                 df_converted[col] = pd.to_numeric(df_converted[col], errors='coerce').astype('Int64')
-        
-        # Convert numeric columns
+
         numeric_cols = ['par_total', 'round_total', 'hole_score']
         
         for col in numeric_cols:
@@ -2902,17 +2343,7 @@ class DataExtractor:
         
         return df_converted
 
-    def calculate_player_round_stats(self, 
-                                player_hole_data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Calculate additional statistics for a player's round based on hole-by-hole data.
-        
-        Args:
-            player_hole_data: DataFrame with hole-by-hole scores from extract_player_hole_scores
-            
-        Returns:
-            DataFrame with calculated round statistics
-        """
+    def calculate_player_round_stats(self, player_hole_data):
         self.logger.info("Calculating player round statistics")
         
         if player_hole_data.empty:
@@ -2920,16 +2351,12 @@ class DataExtractor:
             return pd.DataFrame()
         
         try:
-            # Group by player, tournament, and round
             grouped = player_hole_data.groupby(['player_id', 'tournament_id', 'round_number'])
             
             round_stats = []
             
             for (player_id, tournament_id, round_number), group in grouped:
-                # Get basic round info from first row
                 first_row = group.iloc[0]
-                
-                # Base stats dictionary
                 stats = {
                     'player_id': player_id,
                     'player_name': first_row['player_name'],
@@ -2941,11 +2368,9 @@ class DataExtractor:
                     'round_total': first_row['round_total'],
                     'score_to_par': first_row['score_to_par']
                 }
-                
-                # Calculate counts of each score type
+
                 hole_status_counts = group['hole_status'].value_counts()
-                
-                # Add counts of each type (ensure 0 if none)
+
                 stats['eagles'] = hole_status_counts.get('EAGLE', 0)
                 stats['birdies'] = hole_status_counts.get('BIRDIE', 0)
                 stats['pars'] = hole_status_counts.get('PAR', 0)
@@ -3003,19 +2428,7 @@ class DataExtractor:
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
 
-    def calculate_tournament_stats(self, 
-                                tournament_id: str,
-                                hole_data: pd.DataFrame = None) -> pd.DataFrame:
-        """
-        Calculate tournament-wide statistics for each hole.
-        
-        Args:
-            tournament_id: Tournament ID to analyze
-            hole_data: Pre-loaded hole data (optional). If None, will be extracted.
-            
-        Returns:
-            DataFrame with hole statistics across all players
-        """
+    def calculate_tournament_stats(self, tournament_id: str,hole_data: pd.DataFrame = None) -> pd.DataFrame:
         self.logger.info(f"Calculating tournament-wide statistics for {tournament_id}")
         
         try:
@@ -3081,3 +2494,4 @@ class DataExtractor:
             import traceback
             self.logger.error(traceback.format_exc())
             return pd.DataFrame()
+        

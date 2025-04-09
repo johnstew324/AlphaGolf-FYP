@@ -93,19 +93,7 @@ def create_player_performance_features(player_ids: List[str], season: int,
 
 def create_tournament_history_features(tournament_id: str, player_ids: List[str], 
                                      processors: Dict, season: int = None) -> pd.DataFrame:
-    """
-    Create tournament history features for players.
-    
-    Args:
-        tournament_id: The tournament ID
-        player_ids: List of player IDs
-        processors: Dictionary of processor instances
-        season: Optional season filter
-        
-    Returns:
-        DataFrame with tournament history features
-    """
-    # Handle the special tournament ID format for tournament_history
+
     if tournament_id.startswith("R") and len(tournament_id) >= 8:
         special_id = "R2025" + tournament_id[5:]
     else:
@@ -160,19 +148,6 @@ def create_tournament_history_features(tournament_id: str, player_ids: List[str]
 
 def create_course_features(tournament_id: str, player_ids: List[str], 
                           processors: Dict, season: int = None) -> pd.DataFrame:
-    """
-    Create course-specific features with availability handling.
-    
-    Args:
-        tournament_id: The tournament ID
-        player_ids: List of player IDs
-        processors: Dictionary of processor instances
-        season: Optional season to filter
-        
-    Returns:
-        DataFrame with course features for all players
-    """
-    # Extract year from tournament_id if season not provided
     if not season and tournament_id.startswith("R") and len(tournament_id) >= 8:
         try:
             season = int(tournament_id[1:5])
@@ -292,26 +267,13 @@ def create_course_features(tournament_id: str, player_ids: List[str],
 
 def create_weather_features(tournament_id: str, player_ids: List[str], 
                            processors: Dict, season: int = None) -> pd.DataFrame:
-    """
-    Create weather-related features with availability handling.
-    
-    Args:
-        tournament_id: The tournament ID
-        player_ids: List of player IDs
-        processors: Dictionary of processor instances
-        season: Optional season to filter
-        
-    Returns:
-        DataFrame with weather features for all players
-    """
-    # Extract year from tournament_id if season not provided
     if not season and tournament_id.startswith("R") and len(tournament_id) >= 8:
         try:
             season = int(tournament_id[1:5])
         except ValueError:
             pass
     
-    # Weather data is only available from 2022+
+
     if season and season < 2022:
         # Create empty DataFrame with tournament_id and has_weather_data=0
         weather_features = pd.DataFrame({'tournament_id': [tournament_id], 'has_weather_data': [0]})
@@ -364,18 +326,6 @@ def create_weather_features(tournament_id: str, player_ids: List[str],
 
 def create_career_context_features(player_ids: List[str], season: int, 
                                  processors: Dict) -> pd.DataFrame:
-    """
-    Create career context features for players.
-    
-    Args:
-        player_ids: List of player IDs
-        season: The current season
-        processors: Dictionary of processor instances
-        
-    Returns:
-        DataFrame with career context features
-    """
-    # Extract career data
     if 'player_career' in processors:
         career_features = processors['player_career'].extract_features(
             player_ids=player_ids,
@@ -389,25 +339,10 @@ def create_career_context_features(player_ids: List[str], season: int,
             career_features = _add_derived_career_metrics(career_features)
             
             return career_features
-    
-    # If no data or processor, return empty DataFrame with player_ids
     return pd.DataFrame({'player_id': player_ids, 'has_career_data': 0})
 
 def create_scorecard_features(tournament_id: str, player_ids: List[str], 
                             processors: Dict, season: int = None) -> pd.DataFrame:
-    """
-    Create scorecard-based features with availability handling.
-    
-    Args:
-        tournament_id: The tournament ID
-        player_ids: List of player IDs
-        processors: Dictionary of processor instances
-        season: Optional season to filter
-        
-    Returns:
-        DataFrame with scorecard features
-    """
-    # Scorecard data is available for all seasons (2014+)
     if 'scorecard' in processors:
         scorecard_features = processors['scorecard'].extract_features(
             tournament_id=tournament_id,
@@ -426,20 +361,7 @@ def create_scorecard_features(tournament_id: str, player_ids: List[str],
 
 
 def create_base_features(tournament_id: str, season: int, player_ids: List[str], 
-                        processors: Dict) -> pd.DataFrame:
-    """
-    Create comprehensive base features, handling data availability across collections.
-    
-    Args:
-        tournament_id: The tournament ID in standard format
-        season: The season being analyzed
-        player_ids: List of player IDs to include
-        processors: Dictionary of processor instances
-        
-    Returns:
-        DataFrame with combined base features
-    """
-    # Get individual feature sets
+                        processors: Dict, data_extractor=None) -> pd.DataFrame:
     performance_features = create_player_performance_features(player_ids, season, processors, tournament_id)
     history_features = create_tournament_history_features(tournament_id, player_ids, processors, season)
     career_features = create_career_context_features(player_ids, season, processors)
@@ -447,12 +369,27 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     weather_features = create_weather_features(tournament_id, player_ids, processors, season)
     scorecard_features = create_scorecard_features(tournament_id, player_ids, processors, season)
     
+    # Add position data if data_extractor is provided
+    position_features = pd.DataFrame()
+    if data_extractor is not None:
+        history_tournament_id = tournament_id
+        if tournament_id.startswith("R") and len(tournament_id) >= 8:
+            tournament_part = tournament_id[5:]
+            history_tournament_id = f"R2025{tournament_part}"
+        
+        position_features = extract_position_and_winner_data(
+            data_extractor,
+            history_tournament_id,
+            player_ids
+        )
+    
     # Combine all features
     all_features = []
     
     # Start with player IDs if all features are empty
     if (performance_features.empty and history_features.empty and career_features.empty and 
-        course_features.empty and weather_features.empty and scorecard_features.empty):
+        course_features.empty and weather_features.empty and scorecard_features.empty and
+        position_features.empty):
         return pd.DataFrame({'player_id': player_ids, 'tournament_id': tournament_id})
     
     # Add features that have data
@@ -474,6 +411,12 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     if not scorecard_features.empty:
         all_features.append(scorecard_features)
     
+    if not position_features.empty:
+        all_features.append(position_features)
+        has_position = 1
+    else:
+        has_position = 0
+    
     # Merge all feature sets
     base_features = _merge_feature_sets(all_features, on='player_id')
     
@@ -481,6 +424,7 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     if not base_features.empty:
         base_features['feature_year'] = season
         base_features['tournament_id_standard'] = tournament_id
+        base_features['has_position_data'] = has_position
         
         # Calculate data completeness
         has_columns = [col for col in base_features.columns if col.startswith('has_')]
@@ -489,23 +433,12 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     
     return base_features
 
-
 def _add_derived_performance_metrics(features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add derived performance metrics to the feature set.
-    
-    Args:
-        features: DataFrame with raw performance metrics
-        
-    Returns:
-        DataFrame with added derived metrics
-    """
     df = features.copy()
     
     # SG category ratios (if available)
     sg_categories = ['sg_ott', 'sg_app', 'sg_atg', 'sg_p', 'sg_tot']
     
-    # Check if we have SG columns
     if all(cat in df.columns for cat in sg_categories):
         # Calculate SG category contributions
         if df['sg_tot'].abs().max() > 0:
@@ -554,15 +487,6 @@ def _add_derived_performance_metrics(features: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def _add_derived_history_metrics(features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add derived tournament history metrics to the feature set.
-    
-    Args:
-        features: DataFrame with raw history metrics
-        
-    Returns:
-        DataFrame with added derived metrics
-    """
     df = features.copy()
     
     # Calculate additional history metrics if we have basic data

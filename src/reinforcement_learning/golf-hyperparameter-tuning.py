@@ -20,26 +20,8 @@ import copy
 from golf_tournament_dqn import DQNAgent, ReplayBuffer
 
 class HyperparameterTuner:
-    """
-    Hyperparameter tuning for the Golf Tournament DQN Model
-    Optimized for AMD RX580 GPU with 16GB RAM
-    """
-    
     def __init__(self, train_df, test_df, feature_list, output_dir='./tuning_results'):
-        """
-        Initialize the hyperparameter tuner
-        
-        Parameters:
-        -----------
-        train_df : DataFrame
-            Training data
-        test_df : DataFrame
-            Testing data for evaluation
-        feature_list : list
-            List of features to use
-        output_dir : str
-            Directory to save tuning results
-        """
+    
         self.train_df = train_df
         self.test_df = test_df
         self.feature_list = feature_list
@@ -60,26 +42,9 @@ class HyperparameterTuner:
         }
         
     def set_param_grid(self, param_grid):
-        """Set custom parameter grid"""
         self.param_grid = param_grid
     
     def create_sample_dataset(self, n_tournaments=20, random_state=42):
-        """
-        Create a sample dataset for tuning to speed up the process
-        
-        Parameters:
-        -----------
-        n_tournaments : int
-            Number of tournaments to include in the sample
-        random_state : int
-            Random seed for reproducibility
-            
-        Returns:
-        --------
-        DataFrame
-            Sample dataset
-        """
-        # Set random seed
         np.random.seed(random_state)
         
         # Get unique tournaments
