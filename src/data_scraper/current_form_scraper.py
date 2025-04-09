@@ -98,7 +98,7 @@ class CurrentFormScraper(BaseDataScraper):
         """
 
 #Parse API response
-    async def parse_response(self, response_data: Dict, tournament_id: str) -> Optional[Dict]:
+    async def parse_response(self, response_data, tournament_id):
         try:
             if not response_data or 'data' not in response_data:
                 self.logger.warning(f"No data found for tournament {tournament_id}")

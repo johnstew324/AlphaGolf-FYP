@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 # Pydantic models for course statistics
 class CourseStatsScraper(BaseDataScraper):
-    def __init__(self, url: str, headers: Dict[str, str]):
+    def __init__(self, url, headers):
         super().__init__(url, headers)
         self.course_stats_query = """
         query CourseStats($tournamentId: ID!) {
@@ -128,14 +128,14 @@ class CourseStatsScraper(BaseDataScraper):
             return default
 
 
-    async def parse_response(self, response_data: Dict) -> Optional[Dict]:
+    async def parse_response(self, response_data) :
         if not response_data or 'data' not in response_data:
             return None
             
         return response_data.get('data', {}).get('courseStats', {})
 
 
-    async def get_tournament_courses(self, tournament_id: str) -> List[Dict]:
+    async def get_tournament_courses(self, tournament_id) :
         try:
             variables = {"tournamentId": tournament_id}
             response_data = await self.make_request(self.course_stats_query, variables)
@@ -162,7 +162,7 @@ class CourseStatsScraper(BaseDataScraper):
             return []
 
 
-    async def get_hole_details(self, tournament_id, course_id, hole_number)
+    async def get_hole_details(self, tournament_id, course_id, hole_number):
         try:
             variables = {"tournamentId": tournament_id,
                 "courseId": course_id,

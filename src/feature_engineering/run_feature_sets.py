@@ -393,7 +393,6 @@ def extract_position_and_winner_data(data_extractor, tournament_id, player_ids):
         print(f"No tournament history found for {tournament_id}")
         return pd.DataFrame()
     
-    # Create position and winner dataframe
     position_data = []
     
     for _, player_data in tournament_history.iterrows():
@@ -401,25 +400,21 @@ def extract_position_and_winner_data(data_extractor, tournament_id, player_ids):
             'player_id': player_data['player_id'],
             'tournament_id': tournament_id
         }
-        
-        # Extract position information
+
         if 'position' in player_data:
             player_info['position'] = player_data['position']
             
-            # Convert to numeric position (removing 'T' for ties)
             if isinstance(player_data['position'], str):
                 numeric_position = player_data['position'].replace('T', '')
                 try:
                     numeric_position = int(numeric_position)
                     player_info['position_numeric'] = numeric_position
                     
-                    # Add winner and top finish flags
                     player_info['is_winner'] = 1 if numeric_position == 1 else 0
                     player_info['is_top3'] = 1 if numeric_position <= 3 else 0
                     player_info['is_top10'] = 1 if numeric_position <= 10 else 0
                     player_info['is_top25'] = 1 if numeric_position <= 25 else 0
                 except:
-                    # Handle non-numeric positions like 'CUT', 'WD', etc.
                     player_info['position_numeric'] = None
                     player_info['is_winner'] = 0
                     player_info['is_top3'] = 0
@@ -439,8 +434,7 @@ def extract_position_and_winner_data(data_extractor, tournament_id, player_ids):
                     player_info['is_top3'] = 0
                     player_info['is_top10'] = 0
                     player_info['is_top25'] = 0
-        
-        # Add additional performance data if available
+
         if 'score_to_par' in player_data:
             player_info['score_to_par'] = player_data['score_to_par']
         
@@ -449,20 +443,16 @@ def extract_position_and_winner_data(data_extractor, tournament_id, player_ids):
             
         position_data.append(player_info)
     
-    # Create DataFrame
     position_df = pd.DataFrame(position_data)
     
-    # Find the winner
     if not position_df.empty and 'is_winner' in position_df.columns:
         winners = position_df[position_df['is_winner'] == 1]
         if not winners.empty:
             winner_id = winners['player_id'].iloc[0]
-            # Add winner_id as a column to all rows
             position_df['tournament_winner_id'] = winner_id
     
     return position_df
 
-# Now let's modify the process_single_tournament_improved function to include this data
 def process_single_tournament_improved(tournament_id, player_id_list=None, player_batch_size=None):
     print(f"\n=== Processing Tournament: {tournament_id} ===")
     tournament_start = datetime.now()
@@ -501,8 +491,7 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
         history_tournament_id = f"R2025{tournament_part}"
         
     print(f"Using tournament history ID: {history_tournament_id}")
-    
-    # PHASE 1: Create a consistent player registry
+
     player_registry = create_player_registry(
         data_extractor, 
         tournament_id, 
@@ -516,15 +505,12 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
         print(f"No players found for tournament {tournament_id}")
         return (tournament_id, None)
     
-    # Print player count
     player_count = len(player_registry)
     print(f"Processing {player_count} players for tournament {tournament_id}")
     
-    # PHASE 2: Process all feature types using the consistent player registry
     combined_features = None
     
     try:
-        # Step 1: Generate base features
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Generating Base Features for {tournament_id}")
         base_players = player_registry['player_id'].tolist()
         base_features = create_base_features(tournament_id, season, base_players, processors)
@@ -582,7 +568,6 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
             combined_features['has_interaction_features'] = 0
             print("No interaction features generated")
         
-        # NEW STEP: Add position and winner data
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Adding Position and Winner Data for {tournament_id}")
         position_features = extract_position_and_winner_data(
             data_extractor,
@@ -591,7 +576,6 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
         )
         
         if not position_features.empty:
-            # Merge position features
             combined_features = safely_merge_features(
                 combined_features,
                 position_features,
@@ -604,24 +588,20 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
         else:
             combined_features['has_position_data'] = 0
             print("No position data available")
-        
-        # Final check for duplicate players
+
         if combined_features['player_id'].duplicated().sum() > 0:
             print(f"Warning: Found duplicate players in final dataset. Keeping first occurrence only.")
             combined_features = combined_features.drop_duplicates(subset=['player_id'])
         
-        # Calculate data completeness
         has_columns = [col for col in combined_features.columns if col.startswith('has_')]
         if has_columns:
             combined_features['data_completeness'] = combined_features[has_columns].sum(axis=1) / len(has_columns)
         
         print(f"Final combined feature set: {combined_features.shape[0]} rows, {combined_features.shape[1]} columns")
         
-        # Calculate elapsed time
         elapsed = (datetime.now() - tournament_start).total_seconds()
         print(f"Tournament {tournament_id} processing completed in {elapsed:.1f} seconds")
-        
-        # Save individual tournament features
+
         try:
             output_dir = os.path.join(current_dir, 'output', 'tournaments')
             os.makedirs(output_dir, exist_ok=True)
@@ -636,23 +616,10 @@ def process_single_tournament_improved(tournament_id, player_id_list=None, playe
     except Exception as e:
         print(f"Error processing features for tournament {tournament_id}: {str(e)}")
         traceback.print_exc()
-    
-    # Run garbage collection to free memory
+
     gc.collect()
     
     return (tournament_id, combined_features)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def test_feature_generation_improved(
@@ -669,10 +636,11 @@ def test_feature_generation_improved(
     print(f"Max workers: {max_workers}")
     
     # Use the enhanced tracker
-    tracker = EnhancedProgressTracker(
-        total_tournaments=len(tournament_ids),
-        total_players=len(player_id_list) if player_id_list else 0
+    tracker = ProgressTracker(
+    total_tournaments=len(tournament_ids),
+    total_players=len(player_id_list) if player_id_list else 0
     )
+
     
     if resume:
         original_count = len(tournament_ids)

@@ -9,22 +9,8 @@ import re
 from datetime import datetime
 
 class FeatureTransformer:
-    """
-    Transforms features for golf tournament prediction.
-    
-    This class provides methods to transform raw features into more meaningful
-    representations, handle missing values, encode categorical variables,
-    and create derived features.
-    """
     
     def __init__(self, drop_timestamps=True, special_player_ids=None):
-        """
-        Initialize the feature transformer.
-        
-        Args:
-            drop_timestamps: Whether to drop timestamp columns
-            special_player_ids: List of player IDs that require special handling (e.g., LIV players)
-        """
         self.drop_timestamps = drop_timestamps
         self.special_player_ids = special_player_ids or []
         self.transformers = {}
@@ -34,16 +20,6 @@ class FeatureTransformer:
         self.feature_groups = {}
         
     def fit_transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Fit transformers to the data and transform it.
-        
-        Args:
-            features_df: DataFrame with raw features
-            
-        Returns:
-            DataFrame with transformed features
-        """
-        # Make a copy to avoid modifying the original
         df = features_df.copy()
         
         # Analyze feature types
@@ -73,16 +49,7 @@ class FeatureTransformer:
         return df
     
     def transform(self, features_df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform features using previously fit transformers.
-        
-        Args:
-            features_df: DataFrame with raw features
-            
-        Returns:
-            DataFrame with transformed features
-        """
-        # Make a copy to avoid modifying the original
+
         df = features_df.copy()
         
         # Apply basic cleanups
@@ -103,13 +70,7 @@ class FeatureTransformer:
         return df
     
     def _analyze_feature_types(self, df: pd.DataFrame) -> None:
-        """
-        Analyze and categorize features by data type.
-        
-        Args:
-            df: DataFrame with features
-        """
-        # Identify feature types
+
         for col in df.columns:
             if col in ['player_id', 'tournament_id', 'tournament_id_standard']:
                 self.feature_types[col] = 'id'
@@ -132,13 +93,7 @@ class FeatureTransformer:
                 self.feature_types[col] = 'other'
     
     def _group_features(self, df: pd.DataFrame) -> None:
-        """
-        Group features by their purpose and type.
-        
-        Args:
-            df: DataFrame with features
-        """
-        # Define feature groups for targeted processing
+
         self.feature_groups = {
             'ids': [],
             'timestamps': [],
@@ -190,16 +145,6 @@ class FeatureTransformer:
                 self.feature_groups['performance_metrics'].append(col)
     
     def _cleanup_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Perform basic cleanup of features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            Cleaned DataFrame
-        """
-        # Create a copy of the input DataFrame
         result = df.copy()
         
         # Drop timestamp columns if specified
@@ -213,15 +158,6 @@ class FeatureTransformer:
         return result
     
     def _parse_special_format_columns(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Parse columns with special formats.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with parsed features
-        """
         result = df.copy()
         
         # Parse achievement_cuts_made format (e.g., "339/378")
@@ -251,15 +187,7 @@ class FeatureTransformer:
         return result
     
     def _handle_special_players(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Handle special case players like LIV tour players.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with handled special players
-        """
+
         if not self.special_player_ids:
             return df
             
@@ -273,15 +201,6 @@ class FeatureTransformer:
         return result
     
     def _transform_player_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform player-related features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with transformed player features
-        """
         result = df.copy()
         
         # Handle player experience level
@@ -357,15 +276,6 @@ class FeatureTransformer:
         return result
     
     def _transform_tournament_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform tournament-related features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with transformed tournament features
-        """
         result = df.copy()
         
         # Handle position history (last1_position, last2_position, etc.)
@@ -388,18 +298,8 @@ class FeatureTransformer:
         return result
     
     def _transform_performance_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform performance-related features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with transformed performance features
-        """
+
         result = df.copy()
-        
-        # Handle history best/worst SG category
         sg_category_mapping = {
             'sg_ott': 'Off the Tee',
             'sg_app': 'Approach',
@@ -450,15 +350,6 @@ class FeatureTransformer:
         return result
     
     def _transform_calculated_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform calculated metrics features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with transformed calculated features
-        """
         result = df.copy()
         
         # Scale calculated metrics
@@ -479,15 +370,7 @@ class FeatureTransformer:
         return result
     
     def _add_engineered_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Add newly engineered features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            DataFrame with added engineered features
-        """
+
         result = df.copy()
         
         # Create recent position momentum feature
@@ -532,15 +415,6 @@ class FeatureTransformer:
         return result
     
     def _final_cleanup(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Perform final cleanup of transformed features.
-        
-        Args:
-            df: DataFrame with features
-            
-        Returns:
-            Cleaned DataFrame
-        """
         result = df.copy()
         
         # Remove original string columns that have been converted to numeric
@@ -567,15 +441,6 @@ class FeatureTransformer:
 
 
 def is_numeric_column(series: pd.Series) -> bool:
-    """
-    Check if a pandas Series contains numeric data.
-    
-    Args:
-        series: Series to check
-        
-    Returns:
-        Boolean indicating if the series is numeric
-    """
     if pd.api.types.is_numeric_dtype(series):
         return True
     

@@ -1,27 +1,24 @@
 import aiohttp
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
 import asyncio
 import time
 
 class BaseDataScraper(ABC):
-    def __init__(self, url: str, headers: Dict[str, str]):
+    def __init__(self, url, headers):
         self.url = url
         self.headers = headers
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.session: Optional[aiohttp.ClientSession] = None
+        self.session = None
         self.last_request_time = 0
         self.min_request_interval = 1.0
     
-    # create aiohttp session
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self):
         if self.session is None or self.session.closed:
             self.session = aiohttp.ClientSession()
         return self.session
     
     async def _wait_for_rate_limit(self):
-        # wait for rate limit
         current_time = time.time()
         time_since_last_request = current_time - self.last_request_time
         
@@ -30,8 +27,7 @@ class BaseDataScraper(ABC):
         
         self.last_request_time = time.time()
     
-    async def make_request(self, query: str, variables: Dict[str, Any]) -> Dict:
-        #async HTTP request GraphQL endpoint that includes rate limits
+    async def make_request(self, query, variables):
         await self._wait_for_rate_limit()
         
         try:
@@ -56,7 +52,6 @@ class BaseDataScraper(ABC):
         if self.session and not self.session.closed:
             await self.session.close()
     
-    # parse response data
     @abstractmethod
-    async def parse_response(self, response_data: Dict) -> Any:
+    async def parse_response(self, response_data):
         pass

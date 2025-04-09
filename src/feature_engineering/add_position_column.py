@@ -12,7 +12,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.append(parent_dir)
 
 # Path to your features CSV
-INPUT_FEATURES_PATH = "enhanced_winner_features.csv"  # Update this to your actual file path
+INPUT_FEATURES_PATH = "winner_specific_features.csv"  # Update this to your actual file path
 OUTPUT_PATH = "features_set_with_winners.csv"  # Output path
 
 # Import your data extractor (adjust import path as needed)
@@ -89,6 +89,7 @@ def extract_all_tournament_history(data_extractor, tournament_id):
     """
     Extract tournament history without player filtering first,
     then manually filter player data from the raw documents.
+    Ensures only one record per player is kept.
     """
     logger.info(f"Extracting all tournament history for {tournament_id}")
     
@@ -107,8 +108,9 @@ def extract_all_tournament_history(data_extractor, tournament_id):
             
         logger.info(f"Found {len(history_docs)} tournament history documents")
         
-        # Manually extract player information from raw documents
-        player_data = []
+        # To prevent duplicates, use a dictionary to track unique player entries
+        # We'll keep the entry with the best position for each player
+        player_data_dict = {}
         
         for doc in history_docs:
             # Get tournament base info
@@ -125,33 +127,46 @@ def extract_all_tournament_history(data_extractor, tournament_id):
                 
                 for player in players:
                     if isinstance(player, dict) and "player_id" in player:
-                        player_entry = tournament_base.copy()
-                        
-                        # Get player details - convert player_id to string to ensure consistency
-                        player_entry["player_id"] = str(player.get("player_id"))
-                        player_entry["player_name"] = player.get("name")
+                        player_id = str(player.get("player_id"))
                         
                         # Get position information and parse it
                         raw_position = player.get("position")
                         position_numeric = parse_position(raw_position)
                         
                         if position_numeric is not None:
+                            # Create player entry
+                            player_entry = tournament_base.copy()
+                            player_entry["player_id"] = player_id
+                            player_entry["player_name"] = player.get("name")
                             player_entry["position_numeric"] = position_numeric
                             player_entry["original_position"] = raw_position
                             
-                            # Add target variables - use hist_ prefix to avoid column conflicts
+                            # Add target variables
                             player_entry["hist_winner"] = 1 if position_numeric == 1 else 0
                             player_entry["hist_top3"] = 1 if position_numeric <= 3 else 0
                             player_entry["hist_top10"] = 1 if position_numeric <= 10 else 0
                             player_entry["hist_top25"] = 1 if position_numeric <= 25 else 0
-                            player_entry["hist_made_cut"] = 1 if position_numeric < 100 else 0  # Cut is 101+
+                            player_entry["hist_made_cut"] = 1 if position_numeric < 100 else 0
                             
-                            player_data.append(player_entry)
+                            # Use player_id as key for the dictionary
+                            player_key = f"{player_id}_{tournament_id}"
+                            
+                            # If player already exists, only keep the better position
+                            if player_key in player_data_dict:
+                                existing_position = player_data_dict[player_key]["position_numeric"]
+                                # Keep the better (lower) position
+                                if position_numeric < existing_position:
+                                    player_data_dict[player_key] = player_entry
+                            else:
+                                player_data_dict[player_key] = player_entry
+        
+        # Convert dictionary to list for DataFrame creation
+        player_data = list(player_data_dict.values())
         
         # Create DataFrame from extracted player data
         if player_data:
             player_df = pd.DataFrame(player_data)
-            logger.info(f"Extracted {len(player_df)} player records with position data")
+            logger.info(f"Extracted {len(player_df)} unique player records with position data")
             
             # Count special cases
             if 'original_position' in player_df.columns:
@@ -180,7 +195,9 @@ def extract_all_tournament_history(data_extractor, tournament_id):
         import traceback
         logger.error(traceback.format_exc())
         return pd.DataFrame()
-
+    
+    
+    
 def extract_winners_from_all_tournaments(data_extractor, tournament_ids):
     """Extract winner data from all tournaments."""
     all_results = []

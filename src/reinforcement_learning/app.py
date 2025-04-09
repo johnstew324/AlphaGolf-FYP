@@ -6,10 +6,9 @@ import tensorflow as tf
 import os
 import matplotlib.pyplot as plt
 
-# Import your modules - adjust import paths as needed
+
 from golf_tournament_dqn import DQNAgent, evaluate_dqn_agent
 
-# Page configuration
 st.set_page_config(
     page_title="Golf Tournament DQN Predictor",
     page_icon="🏌️",
@@ -17,8 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# App title and description
-st.title("🏌️ Golf Tournament Winner Prediction")
+st.title(" Golf Tournament Winner Prediction")
 st.markdown("### Using Deep Q-Learning to predict golf tournament winners")
 
 # Load pre-processed data
@@ -48,8 +46,7 @@ def load_model(feature_list):
     state_size = len(feature_list)
     agent = DQNAgent(state_size=state_size)
     
-    # There's an issue loading the saved model directly, so let's create a new model
-    # and then only load the weights
+    
     try:
         # Try normal loading first
         agent.load_model("./model/dqn_golf_final.h5")
@@ -69,7 +66,7 @@ def load_model(feature_list):
     
     return agent
 
-# Main function
+
 def main():
     # Show loading message while data loads
     with st.spinner("Loading model and data..."):
@@ -109,39 +106,33 @@ def main():
             index=0
         )
         
-        # Filter data for selected tournament
         tournament_data = prediction_df[prediction_df['tournament_id'] == selected_tournament].copy()
-        
-        # Calculate win probabilities
+
         with st.spinner("Generating predictions..."):
-            # Generate predictions using your agent
+
             predictions = agent.calculate_win_probability(tournament_data, feature_list)
             sorted_predictions = predictions.sort_values('win_probability', ascending=False).reset_index(drop=True)
-            
-            # Add ranks
+
             sorted_predictions['rank'] = range(1, len(sorted_predictions) + 1)
         
-        # Display top players
+
         st.subheader("Top Predicted Players")
         
-        # Determine columns to display
+
         display_cols = ['rank', 'player_id', 'win_probability']
         
-        # Add player name if available
         if 'player_name' in sorted_predictions.columns:
             display_cols.insert(2, 'player_name')
         
-        # Add target columns if available
         for col in available_target_columns:
             if col in sorted_predictions.columns:
                 display_cols.append(col)
         
-        # Add other informative columns if available
         for col in ['owgr', 'win_percentage']:
             if col in sorted_predictions.columns:
                 display_cols.append(col)
         
-        # Format the DataFrame for display
+        
         display_df = sorted_predictions[display_cols].head(10).copy()
         
         # Format probability as percentage
@@ -183,9 +174,9 @@ def main():
             
             # Success message
             if winner_rank <= 3:
-                st.success(f"✅ Successfully predicted the winner in the top 3!")
+                st.success(f"Successfully predicted the winner in the top 3!")
             elif winner_rank <= 10:
-                st.info(f"ℹ️ Actual winner was in our top 10 predictions (#{winner_rank})")
+                st.info(f"Actual winner was in our top 10 predictions (#{winner_rank})")
             else:
                 st.warning(f"⚠️ Actual winner was ranked #{winner_rank} in our predictions")
                 
@@ -199,7 +190,6 @@ def main():
                     display_value = "Yes" if value == 1 else ("No" if value == 0 else value)
                     info_cols[i].metric(column_names.get(col, col), display_value)
         
-        # Visualization: Win probability distribution
         st.subheader("Win Probability Distribution")
         
         import matplotlib.pyplot as plt
@@ -229,11 +219,9 @@ def main():
         
         st.pyplot(fig)
     
-    # Tab 2: Model Performance
     with tab2:
         st.header("Model Performance Metrics")
         
-        # Run evaluation on test set (can be pre-computed to save time)
         with st.spinner("Calculating performance metrics..."):
             test_metrics, _ = evaluate_dqn_agent(agent, test_df, feature_list)
             holdout_metrics, _ = evaluate_dqn_agent(agent, holdout_df, feature_list)
@@ -284,8 +272,6 @@ def main():
             - Top-5 and Top-10 accuracy are strong indicators of model quality
             - Comparable performance between test and holdout sets suggests good generalization
             """)
-    
-    # Tab 3: Player Analysis
     with tab3:
         st.header("Player Analysis")
         
@@ -361,70 +347,16 @@ def main():
         else:
             st.warning("No data available for selected player")
     
-    # Tab 4: About the Model
-    with tab4:
-        st.header("About the DQN Model")
-        
-        st.markdown("""
-        ### Model Architecture
-        
-        This application uses a **Deep Q-Network (DQN)** approach to predict golf tournament winners. DQN is a reinforcement learning technique that learns to make sequential decisions to maximize future rewards.
-        
-        **Key components:**
-        - **Neural Network**: Multi-layer perceptron with hidden layers [128, 64, 32]
-        - **State Space**: Player attributes and historical performance metrics
-        - **Action Space**: Binary (select player as winner or skip)
-        - **Reward System**: +10 for correct winner, -5 for incorrect selection
-        
-        ### Winner Prediction Process
-        
-        The model predicts tournament winners through this sequence:
-        
-        1. **Process each tournament as a sequential decision problem**
-        2. **Evaluate each player based on their features** (excluding target columns such as 'hist_winner', 'hist_top3', etc.)
-        3. **Choose to either select a player as the winner or skip to the next player**
-        4. **Learn from feedback** - receive positive reward for picking actual winners
-        
-        ### Target Columns
-        
-        Our model is evaluated against these historical outcome measures:
-        
-        - **hist_winner**: Whether the player won the tournament
-        - **hist_top3**: Whether the player finished in the top 3
-        - **hist_top10**: Whether the player finished in the top 10
-        - **hist_top25**: Whether the player finished in the top 25
-        - **hist_made_cut**: Whether the player made the cut
-        - **position_numeric**: The player's final position
-        
-        These columns are used as targets for evaluation only, not as features for prediction.
-        
-        ### Advantages of DQN for Golf Prediction
-        
-        1. **Sequential Decision Making**: Evaluates all players in a tournament before making a final prediction
-        2. **Exploration-Exploitation Balance**: Uses epsilon-greedy policy to balance trying new players vs. sticking with probable winners
-        3. **Experience Replay**: Learns from past tournaments to improve future predictions
-        4. **Adaptive Learning**: Continues to improve as more tournament data becomes available
-        
-        ### Limitations
-        
-        - Predicting golf tournament winners is inherently challenging due to the sport's variability
-        - Model performance depends on the quality and comprehensiveness of available features
-        - Limited training data compared to other sports with more frequent competitions
-        """)
-        
-        # Add model diagram if available
         st.subheader("DQN Architecture")
         
-        # Create a simplified diagram of the DQN architecture
+    
         from PIL import Image
         import io
         import matplotlib.pyplot as plt
         import matplotlib.patches as patches
-        
-        # Create a DQN architecture diagram
+    
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        # Input layer
         input_rect = patches.Rectangle((0, 0), 0.6, 6, linewidth=1, edgecolor='r', facecolor='lightcoral', alpha=0.7)
         ax.add_patch(input_rect)
         ax.text(0.3, 6.2, "Input Layer", ha='center')
@@ -467,8 +399,7 @@ def main():
         
         # Titles and labels
         ax.text(4.3, 7, "Deep Q-Network Architecture", ha='center', fontsize=14, fontweight='bold')
-        
-        # Set limits and turn off axis
+    
         ax.set_xlim(-1, 10)
         ax.set_ylim(-0.5, 8)
         ax.axis('off')

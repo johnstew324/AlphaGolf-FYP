@@ -1,46 +1,29 @@
-"""
-Configuration file for Golf Tournament DQN model
-Edit this file to customize model parameters
-"""
 
-# Data configuration
 DATA_CONFIG = {
-    # Percentage of missing values above which columns will be dropped
     'missing_threshold': 30,
-    
-    # Minimum variance threshold for features
+
     'variance_threshold': 0.01,
-    
-    # Percentage of tournaments to use for holdout set
     'holdout_pct': 0.2,
-    
-    # Percentage of remaining tournaments to use for test set
+
     'test_pct': 0.2,
-    
-    # Random seed for reproducibility
+
     'random_seed': 42
 }
 
-# DQN Agent configuration
 AGENT_CONFIG = {
-    # Network architecture
     'hidden_layers': [128, 64, 32],
     'dropout_rate': 0.2,
     
-    # Exploration parameters
     'epsilon_start': 1.0,
     'epsilon_min': 0.05,
     'epsilon_decay': 0.995,
-    
-    # Learning parameters
+
     'learning_rate': 0.001,
-    'gamma': 0.95,  # Discount factor
-    
-    # Memory and batch configuration
-    'memory_size': 5000,  # Replay buffer size
+    'gamma': 0.95,  
+ 
+    'memory_size': 5000,  
     'batch_size': 32,
-    
-    # Action space size (0: skip, 1: select as winner)
+
     'action_size': 2
 }
 
@@ -64,12 +47,9 @@ TRAINING_CONFIG = {
     }
 }
 
-# Hardware optimization for AMD RX580 and 16GB RAM
 HARDWARE_CONFIG = {
-    # Whether to enable memory growth for GPU
     'memory_growth': True,
     
-    # Limit on tournaments to process at once for evaluation
     'tournament_batch_size': 20,
     
     # Whether to use mixed precision

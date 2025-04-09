@@ -26,29 +26,6 @@ class PlayerProfileProcessor(BaseProcessor):
 
         return features
 
-    def _process_snapshot_data(self, snapshot_data):
-        snapshot_features = {}
-
-        for item in snapshot_data:
-            title = item.get("title", "").lower().replace(" ", "_")
-            value = item.get("value", "")
-            description = item.get("description", "")
-
-            snapshot_features[f"snapshot_{title}"] = value
-
-            if description:
-                snapshot_features[f"snapshot_{title}_desc"] = description
-
-            if title == "lowest_round":
-                try:
-                    score = int(value) if value.isdigit() else None
-                    snapshot_features["lowest_round_score"] = score
-                except (ValueError, AttributeError):
-                    pass
-
-        return snapshot_features
-
-
     def _process_owgr_data(self, profile_data):
         if 'player_id' not in profile_data.columns or profile_data.empty:
             return pd.DataFrame()

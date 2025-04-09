@@ -5,6 +5,7 @@ from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Dense, Dropout # type: ignore
 from tensorflow.keras.optimizers import Adam # type: ignore
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping # type: ignore
+import scikit-learn as sklearn
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
@@ -20,8 +21,7 @@ import argparse
 import warnings
 warnings.filterwarnings('ignore')
 
-# Hardware optimization for AMD GPU
-# Try to optimize for AMD RX580 with 16GB RAM and Ryzen 3600X
+
 physical_devices = tf.config.list_physical_devices('GPU')
 if physical_devices:
     try:
@@ -31,7 +31,7 @@ if physical_devices:
     except:
         print("Unable to configure GPU memory growth. Using default settings.")
 
-# If no GPU is found or configuration fails, optimize for CPU (Ryzen 3600X)
+
 if not physical_devices:
     print("No GPU found. Using CPU optimization for Ryzen 3600X")
     # Use moderate batch sizes for CPU training
@@ -67,7 +67,6 @@ class ReplayBuffer:
             self.buffer = pickle.load(f)
 
 class DQNAgent:
-    """Deep Q-Network Agent for Golf Tournament Winner Prediction"""
     
     def __init__(
         self, 
@@ -83,34 +82,6 @@ class DQNAgent:
         hidden_layers=[128, 64, 32],
         dropout_rate=0.2
     ):
-        """
-        Initialize the DQN Agent
-        
-        Parameters:
-        -----------
-        state_size : int
-            Size of the input state (feature vector)
-        action_size : int
-            Number of possible actions (default: 2 - skip or select)
-        epsilon : float
-            Initial exploration rate
-        epsilon_min : float
-            Minimum exploration rate
-        epsilon_decay : float
-            Rate at which epsilon decreases
-        learning_rate : float
-            Learning rate for model updates
-        gamma : float
-            Discount factor for future rewards
-        batch_size : int
-            Number of samples to use for each training step
-        memory_size : int
-            Maximum size of replay memory
-        hidden_layers : list
-            List of hidden layer sizes
-        dropout_rate : float
-            Dropout rate for regularization
-        """
         self.state_size = state_size
         self.action_size = action_size
         self.epsilon = epsilon
@@ -134,7 +105,6 @@ class DQNAgent:
         self.training_loss = []
     
     def _build_model(self):
-        """Build neural network model for DQN"""
         model = Sequential()
         
         # Input layer
@@ -158,11 +128,9 @@ class DQNAgent:
         return model
     
     def remember(self, state, action, reward, next_state, done):
-        """Store experience in replay memory"""
         self.memory.add((state, action, reward, next_state, done))
     
     def act(self, state, training=True):
-        """Choose action based on epsilon-greedy policy"""
         try:
             # Debug state information
             if isinstance(state, np.ndarray) and state.dtype == 'object':
@@ -199,7 +167,6 @@ class DQNAgent:
             raise
     
     def replay(self):
-        """Train model using randomly sampled experiences from replay memory"""
         if self.memory.size() < self.batch_size:
             return 0  # Not enough samples for training
         
@@ -271,7 +238,6 @@ class DQNAgent:
             raise
     
     def calculate_win_probability(self, tournament_df, features):
-        """Calculate win probability for each player in a tournament"""
         result_df = tournament_df.copy()
         
         # Prepare states for all players
@@ -310,32 +276,24 @@ class DQNAgent:
         return result_df
     
     def save_model(self, filepath):
-        """Save the trained model"""
         self.model.save(filepath)
         print(f"Model saved to {filepath}")
     
     def load_model(self, filepath):
-        """Load a pre-trained model"""
         self.model = tf.keras.models.load_model(filepath)
         print(f"Model loaded from {filepath}")
         
     def save_memory(self, filepath):
-        """Save the replay memory"""
         self.memory.save(filepath)
         print(f"Replay memory saved to {filepath}")
         
     def load_memory(self, filepath):
-        """Load replay memory"""
         self.memory.load(filepath)
         print(f"Replay memory loaded from {filepath}")
         
              
         
 def clean_position(pos):
-    """
-    Convert golf position strings to numeric values
-    Examples: "1" -> 1, "T2" -> 2, "CUT" -> None, "WD" -> None
-    """
     if pd.isna(pos):
         return None
     
@@ -489,11 +447,9 @@ def data_preparation(filepath):
                         winner_idx = top3_players.index[0]
                         df.loc[winner_idx, 'is_winner'] = 1
     
-    # If hist_winner column not available, use hist_top3 directly
     elif 'hist_top3' in df.columns:
         print("\nNo 'hist_winner' column. Using 'hist_top3' column to identify tournament winners")
         
-        # Group by tournament and get one top3 player per tournament
         df['is_winner'] = 0
         for tournament_id in df['tournament_id'].unique():
             tournament_data = df[df['tournament_id'] == tournament_id]
@@ -503,12 +459,9 @@ def data_preparation(filepath):
                 # Select first top3 player as winner for this tournament
                 winner_idx = top3_players.index[0]
                 df.loc[winner_idx, 'is_winner'] = 1
-    
-    # If neither column is available, use position_numeric if available
     elif 'position_numeric' in df.columns:
         print("\nUsing 'position_numeric' to identify tournament winners")
-        
-        # Group by tournament and find the player with position_numeric = 1
+
         df['is_winner'] = 0
         for tournament_id in df['tournament_id'].unique():
             tournament_data = df[df['tournament_id'] == tournament_id]
@@ -518,7 +471,6 @@ def data_preparation(filepath):
                 winner_idx = winners.index[0]
                 df.loc[winner_idx, 'is_winner'] = 1
     
-    # Calculate win percentage for each player (historical data)
     player_stats = df.groupby('player_id').agg(
         tournaments=('tournament_id', 'nunique'),
         wins=('is_winner', 'sum')
@@ -540,7 +492,7 @@ def data_preparation(filepath):
         train_test_tournaments, test_size=0.2, random_state=42
     )
     
-    # Create dataframes for each split
+
     train_df = df[df['tournament_id_code'].isin(train_tournaments)]
     test_df = df[df['tournament_id_code'].isin(test_tournaments)]
     holdout_df = df[df['tournament_id_code'].isin(holdout_tournaments)]

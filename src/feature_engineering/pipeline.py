@@ -20,15 +20,8 @@ from .processors.current_form_processor import CurrentFormProcessor
 from .processors.tournament_history_stats_processor import TournamentHistoryStatsProcessor
 
 class FeaturePipeline:
-    """Main pipeline for feature engineering."""
     
     def __init__(self, data_extractor):
-        """
-        Initialize the pipeline with a data extractor.
-        
-        Args:
-            data_extractor: An instance of the DataExtractor class
-        """
         self.data_extractor = data_extractor
         self.player_form = PlayerFormProcessor(data_extractor)
         self.course_fit = CourseFitProcessor(data_extractor)
@@ -42,31 +35,15 @@ class FeaturePipeline:
         self.tournament_history_stats = TournamentHistoryStatsProcessor(data_extractor)
 
     def generate_features(self, tournament_id, season, player_ids=None):
-        """
-        Generate features for a specific tournament.
-        
-        Args:
-            tournament_id: The tournament ID in standard RYYYY format
-            season: The current season
-            player_ids: Optional list of player IDs
-            
-        Returns:
-            DataFrame with combined features
-        """
-        # Create special tournament ID format for tournament_history
-        # Convert from standard RYYYY format to special R2025 format
         if tournament_id.startswith("R") and len(tournament_id) >= 8:
             special_tournament_id = "R2025" + tournament_id[5:]
         else:
             special_tournament_id = tournament_id
-        
-        # Get player form features
+
         player_form = self.player_form.extract_features(player_ids, season, tournament_id)
-        
-        # Get course fit features
+
         course_fit = self.course_fit.extract_features(tournament_id, player_ids)
         
-        # Get tournament history features (using special format)
         tournament_history = self.tournament_history.extract_features(special_tournament_id, player_ids)
         
         # Get player profile features
@@ -79,55 +56,35 @@ class FeaturePipeline:
         scorecard = self.scorecard.extract_features(tournament_id, player_ids, season)
         
         course_stats = self.course_stats.extract_features(tournament_id, player_ids, season)
-        
-        # Get weather features
+
         weather_features = self.tournament_weather.extract_features(tournament_ids=tournament_id, season=season)
         
         current_form_features = self.current_form.extract_features(player_ids, season, tournament_id)
         
         tournament_history_stats = self.tournament_history_stats.extract_features(tournament_id, player_ids, season)
-        
-        # Combine all features
+
         features = self._combine_features(player_form, course_fit, tournament_history, player_profile, player_career, scorecard, weather_features, course_stats, current_form_features, tournament_history_stats)
         
         return features
     
     def _combine_features(self, *feature_sets):
-        # Start with an empty result
         result = None
         
         for i, features in enumerate(feature_sets):
             if features is None or features.empty:
                 print(f"Feature set {i} is empty or None")
                 continue
-                
-            # Log feature set details before merging
+
             print(f"Feature set {i}: {features.shape} columns, example columns: {list(features.columns)[:5]}")
             
-            # Rest of your existing code...
-            
-            # Log after merging
             if result is not None:
                 print(f"After merge {i}: {result.shape} columns")
     
     def generate_target_variables(self, tournament_id, player_ids=None):
-        """
-        Generate target variables for model training.
-        
-        Args:
-            tournament_id: The tournament ID in standard RYYYY format
-            player_ids: Optional list of player IDs
-            
-        Returns:
-            DataFrame with target variables
-        """
-        # Convert the standard tournament_id to the special format used in tournament_history
         if tournament_id.startswith("R") and len(tournament_id) >= 8:
             special_id = "R2025" + tournament_id[5:]
         else:
             special_id = tournament_id
-        
-        # Extract tournament results using the special ID format
         history = self.data_extractor.extract_tournament_history(
             tournament_ids=special_id,
             player_ids=player_ids
@@ -136,13 +93,10 @@ class FeaturePipeline:
         if history.empty:
             return pd.DataFrame()
         
-        # Debug: Print column names to see what's available
         print(f"Tournament history columns: {history.columns.tolist()}")
-        
-        # Create target variables
+
         targets = []
         
-        # Determine what column holds player IDs (could be 'player_id', 'player', 'pid', etc.)
         player_id_col = None
         for possible_col in ['player_id', 'pid', 'player', 'id']:
             if possible_col in history.columns:
@@ -155,33 +109,28 @@ class FeaturePipeline:
             
         for _, player_data in history.iterrows():
             player_target = {
-                'player_id': player_data[player_id_col],  # Use the identified column
+                'player_id': player_data[player_id_col],  
                 'tournament_id': tournament_id,
                 'year': player_data.get('year')
             }
             
-            # Position-based targets
             if 'position_numeric' in player_data:
                 pos = player_data['position_numeric']
                 if pd.notna(pos):
                     player_target['position'] = pos
                     player_target['winner'] = 1 if pos == 1 else 0
-                    # ...rest of the function remains unchanged...
                     player_target['top3'] = 1 if pos <= 3 else 0
                     player_target['top10'] = 1 if pos <= 10 else 0
                     player_target['made_cut'] = 1 if pos < 100 else 0
             
             targets.append(player_target)
-        
-        # Create DataFrame and ensure proper types
+
         targets_df = pd.DataFrame(targets)
-        
-        # Convert target columns to integers where appropriate
+
         for col in ['winner', 'top3', 'top10', 'made_cut']:
             if col in targets_df.columns:
                 targets_df[col] = targets_df[col].astype(int)
-        
-        # Add a column indicating the special tournament_id used for lookup
+
         targets_df['history_tournament_id'] = special_id
         
         return targets_df

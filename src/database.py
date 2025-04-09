@@ -1,10 +1,10 @@
-from pymongo import MongoClient, ASCENDING
-from datetime import datetime
+from pymongo import MongoClient, ASCENDING  # type: ignore
+from datetime import datetime, timedelta
 import logging
-from typing import List, Dict, Optional, Union, Any
-from pydantic import BaseModel
+from pydantic import BaseModel  # type: ignore
+from typing import Optional
 
-# logging ( probably can remove )
+# logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -12,29 +12,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 class PlayerStat(BaseModel):
-    player_id: str
-    name: str
-    season: int
-    stat_id: str
-    title: str
-    category: str
-    rank: Optional[int]
-    value: Union[float, str]
-    supporting_stat_description: Optional[str]
-    supporting_stat_value: Optional[str]
-    supporting_value_description: Optional[str]
-    supporting_value: Optional[str]
+    player_id: Optional[str] = None
+    name: Optional[str] = None
+    season: Optional[str] = None
+    stat_id: Optional[str] = None
+    title: Optional[str] = None
+    category: Optional[str] = None
+    rank: Optional[int] = None
+    value: Optional[float] = None
+    supporting_stat_description: Optional[str] = None
+    supporting_stat_value: Optional[float] = None
+    supporting_value_description: Optional[str] = None
+    supporting_value: Optional[float] = None
     collected_at: datetime = datetime.utcnow()
 
 class CourseStat(BaseModel):
-    tournament_id: str
-    course_id: str
-    holes: List[Dict]
-    course_summary: Dict
+    tournament_id: Optional[str] = None
+    course_id: Optional[str] = None
+    holes: Optional[int] = None
+    course_summary: Optional[str] = None
     collected_at: datetime = datetime.utcnow()
 
-from functools import lru_cache
-from datetime import datetime, timedelta
 
 class QueryCache:
     def __init__(self, maxsize=1000, ttl=3600):
@@ -54,19 +52,13 @@ class QueryCache:
         self.cache[key] = {'data': data, 'timestamp': datetime.now()}
 
 
+
 #initilise database 
 class DatabaseManager:
     def __init__(self, uri: str, database_name: str = "pga_tour_data"):
         self.logger = logging.getLogger(__name__)
         
         self.cache = QueryCache(maxsize=5000, ttl=1800)  # 30 minute TTL
-        """
-        Initialize database connection with error handling.
-        
-        Args:
-            uri: MongoDB connection string
-            database_name: Name of the database
-        """
         try:
             self.client = MongoClient(uri, 
                                     maxPoolSize=50,  # Connection pooling
@@ -80,13 +72,6 @@ class DatabaseManager:
             raise
 
     def setup_indexes(self):
-        """
-        Create indexes once during initialization.
-        Indexes help in faster data retrieval and are especially useful for:
-        - Queries you run frequently
-        - Fields you sort on frequently
-        - Fields you use in aggregation pipelines
-        """
         try:
             # Player stats indexes
             self.db.player_stats.create_index([("player_id", ASCENDING), ("season", ASCENDING)])
@@ -108,8 +93,7 @@ class DatabaseManager:
             logger.error(f"Failed to create indexes: {str(e)}")
             raise
 
-    def insert_player_stats(self, stats_data: Dict, collection_name: str = "player_stats"):
-        """Insert player statistics with grouped structure"""
+    def insert_player_stats(self, stats_data, collection_name = "player_stats"):
         try:
             collection = self.db[collection_name]
             
@@ -133,14 +117,7 @@ class DatabaseManager:
             logger.error(f"Failed to insert player stats: {str(e)}")
             raise
 
-    def insert_course_stats(self, course_stats: Union[Dict, List[Dict]], collection_name: str = "course_stats"):
-        """
-        Insert course statistics with validation to preserve all rounds data.
-        
-        Args:
-            course_stats: Course statistics (single dict or list of dicts)
-            collection_name: Name of the collection
-        """
+    def insert_course_stats(self, course_stats, collection_name= "course_stats"):
         try:
             collection = self.db[collection_name]
             
@@ -176,14 +153,7 @@ class DatabaseManager:
             self.logger.error(f"Failed to insert course stats: {str(e)}")
             raise
 
-    def insert_shot_data(self, shot_data: Dict, collection_name: str = "shot_data"):
-        """
-        Insert shot-level data with basic validation.
-        
-        Args:
-            shot_data: Shot data dictionary
-            collection_name: Name of the collection
-        """
+    def insert_shot_data(self, shot_data, collection_name= "shot_data"):
         try:
             collection = self.db[collection_name]
             
@@ -199,8 +169,7 @@ class DatabaseManager:
             logger.error(f"Failed to insert shot data: {str(e)}")
             raise
         
-    def insert_coursefit_stats(self, field_stats: Dict, collection_name: str = "field_stats"):
-        """Insert course fit statistics"""
+    def insert_coursefit_stats(self, field_stats, collection_name = "field_stats"):
         try:
             collection = self.db[collection_name]
             collection.update_one(
@@ -218,14 +187,7 @@ class DatabaseManager:
         
         
 
-    def insert_tournament_history(self, history_data: Union[Dict, List[Dict]], collection_name: str = "tournament_history") -> None:
-        """
-        Insert historical tournament data with duplicate prevention and improved logging
-        
-        Args:
-            history_data: Tournament history dictionary or list of dictionaries
-            collection_name: Name of collection to insert into
-        """
+    def insert_tournament_history(self, history_data, collection_name = "tournament_history"):
         try:
             collection = self.db[collection_name]  
             
@@ -247,17 +209,12 @@ class DatabaseManager:
             
             for year_data in history_data:
                 try:
-                    # Standardize the tournament_id to use the most recent format
-                    # This ensures all historical data uses the same tournament ID regardless of year
-                    # Extract the base tournament ID (e.g., "007") from the full ID
                     if "tournament_id" in year_data and year_data["tournament_id"].startswith("R"):
-                        base_id = year_data["tournament_id"][5:]  # Extract base ID (e.g., "007")
-                        # Use a standardized tournament ID format (most recent year)
+                        base_id = year_data["tournament_id"][5:] 
                         current_year = datetime.now().year
                         year_data["original_tournament_id"] = year_data["tournament_id"]
                         year_data["tournament_id"] = f"R{current_year}{base_id}"
-                    
-                    # Use update_one with upsert to avoid duplicates
+        
                     result = collection.update_one(
                         {
                             "tournament_id": year_data["tournament_id"],
@@ -288,18 +245,15 @@ class DatabaseManager:
             self.logger.error(f"Failed to insert tournament history: {str(e)}")
             raise
             
-    def insert_current_form(self, current_form_data: Dict, collection_name: str = "current_form"):
-        """Insert current form statistics"""
+    def insert_current_form(self, current_form_data, collection_name = "current_form"):
         try:
             collection = self.db[collection_name]
             
-            # Create indexes
             collection.create_index([
                 ("tournament_id", 1),
                 ("collected_at", -1)
             ])
             
-            # Update or insert the document
             collection.update_one(
                 {"tournament_id": current_form_data["tournament_id"]},
                 {"$set": current_form_data},
@@ -313,8 +267,7 @@ class DatabaseManager:
         
         
         
-    def insert_tournament_history_stats(self, history_stats: Dict, collection_name: str = "tournament_history_stats"):
-        """Insert tournament history statistics"""
+    def insert_tournament_history_stats(self, history_stats, collection_name = "tournament_history_stats"):
         try:
             collection = self.db[collection_name]
             
@@ -337,17 +290,7 @@ class DatabaseManager:
             raise
 
 
-    def get_player_round_stats(self, tournament_id: str, round_num: Optional[int] = None) -> Optional[Dict]:
-        """
-        Retrieve player statistics for a specific round.
-        
-        Args:
-            tournament_id: Tournament identifier
-            round_num: Round number (optional)
-            
-        Returns:
-            Dictionary containing round statistics or None
-        """
+    def get_player_round_stats(self, tournament_id, round_num = None):
         try:
             collection = self.db["shot_data"]
             query = {"tournament_id": tournament_id}
@@ -360,18 +303,7 @@ class DatabaseManager:
             logger.error(f"Failed to retrieve round stats: {str(e)}")
             return None
 
-    def get_hole_stats(self, tournament_id: str, course_id: int, hole_number: int) -> Optional[Dict]:
-        """
-        Retrieve statistics for a specific hole.
-        
-        Args:
-            tournament_id: Tournament identifier
-            course_id: Course identifier
-            hole_number: Hole number
-            
-        Returns:
-            Dictionary containing hole statistics or None
-        """
+    def get_hole_stats(self, tournament_id, course_id, hole_number):
         try:
             collection = self.db["shot_data"]
             return collection.find_one({
@@ -384,18 +316,7 @@ class DatabaseManager:
             return None
         
         
-    def get_tournament_history_by_year_range(self, tournament_id: str, start_year: int, end_year: int) -> List[Dict]:
-        """
-        Retrieve historical tournament data for a specific year range
-        
-        Args:
-            tournament_id: Tournament identifier
-            start_year: First year to retrieve
-            end_year: Last year to retrieve
-            
-        Returns:
-            List of tournament history records
-        """
+    def get_tournament_history_by_year_range(self, tournament_id, start_year, end_year):
         try:
             collection = self.db["tournament_history"]
             result = list(collection.find({
@@ -411,12 +332,11 @@ class DatabaseManager:
             return []
         
         
-    def insert_scorecards(self, scorecard_data, collection_name: str = "scorecards"):
-        """Insert scorecard data with better handling for single documents"""
+    def insert_scorecards(self, scorecard_data, collection_name = "scorecards"):
+
         try:
             collection = self.db[collection_name]
             
-            # Create indexes if they don't exist
             if 'id_1_player_id_1' not in collection.index_information():
                 collection.create_index([
                     ("id", 1),
@@ -425,16 +345,15 @@ class DatabaseManager:
             if 'collected_at_-1' not in collection.index_information():
                 collection.create_index([("collected_at", -1)])
             
-            # Handle both single scorecard and list of scorecards
+
             if isinstance(scorecard_data, list):
-                if not scorecard_data:  # If empty list
+                if not scorecard_data:  
                     self.logger.warning("No scorecard data to insert")
                     return None
                 result = collection.insert_many(scorecard_data)
                 self.logger.info(f"Successfully stored {len(result.inserted_ids)} scorecards")
                 return result.inserted_ids
             elif isinstance(scorecard_data, dict):
-                # It's a single scorecard, insert it directly
                 result = collection.insert_one(scorecard_data)
                 self.logger.info(f"Successfully stored scorecard for player {scorecard_data.get('player_id')}")
                 return result.inserted_id
@@ -447,28 +366,16 @@ class DatabaseManager:
         
         ##weather
         
-    def insert_tournament_weather(self, weather_data: Dict, collection_name: str = "tournament_weather") -> Any:
-        """
-        Insert tournament weather data with duplicate prevention
-        
-        Args:
-            weather_data: Tournament weather data dictionary
-            collection_name: Name of collection to insert into
-            
-        Returns:
-            Result of the database operation
-        """
+    def insert_tournament_weather(self, weather_data, collection_name = "tournament_weather"):
         try:
             collection = self.db[collection_name]
             
-            # Create index if it doesn't exist
             if 'tournament_id_1_year_1' not in collection.index_information():
                 collection.create_index([
                     ("tournament_id", 1),
                     ("year", 1)
                 ], unique=True)
             
-            # Use update_one with upsert to avoid duplicates
             result = collection.update_one(
                 {
                     "tournament_id": weather_data["tournament_id"],
@@ -491,17 +398,7 @@ class DatabaseManager:
             self.logger.error(f"Failed to insert tournament weather data: {str(e)}")
             raise
             
-    def get_tournament_weather(self, tournament_id: str, year: int = None) -> Optional[Dict]:
-        """
-        Retrieve weather data for a specific tournament
-        
-        Args:
-            tournament_id: Tournament identifier
-            year: Optional year filter
-            
-        Returns:
-            Dictionary containing weather data or None
-        """
+    def get_tournament_weather(self, tournament_id, year):
         try:
             collection = self.db["tournament_weather"]
             query = {"tournament_id": tournament_id}
@@ -522,14 +419,7 @@ class DatabaseManager:
 
     # Add these methods to your DatabaseManager class
 
-    def insert_player_career(self, career_data: Dict, collection_name: str = "player_career"):
-        """
-        Insert player career data with validation
-        
-        Args:
-            career_data: Player career data dictionary
-            collection_name: Name of the collection
-        """
+    def insert_player_career(self, career_data, collection_name = "player_career"):
         try:
             collection = self.db[collection_name]
             
@@ -563,35 +453,22 @@ class DatabaseManager:
             self.logger.error(f"Failed to insert player career data: {str(e)}")
             raise
 
-    def insert_player_profile_overview(self, overview_data: Dict, collection_name: str = "player_profile_overview"):
-        """
-        Insert player profile overview data
+    def insert_player_profile_overview(self, overview_data, collection_name = "player_profile_overview"):
         
-        Args:
-            overview_data: Player profile overview data dictionary
-            collection_name: Name of the collection
-        """
         try:
             collection = self.db[collection_name]
             
-            # Additional validation for OWGR
             if "standings" in overview_data and overview_data["standings"] is not None:
                 standings = overview_data["standings"]
                 if "owgr" in standings and standings["owgr"] is not None:
                     self.logger.info(f"Player {overview_data['player_id']} has OWGR: {standings['owgr']}")
                     
-                    # Explicitly verify the OWGR value is present before storing
                     owgr_value = standings["owgr"]
                     if owgr_value is not None:
-                        # Ensure it's preserved in the document by setting it again
                         overview_data["standings"]["owgr"] = owgr_value
-                        # IMPORTANT: For debugging - directly set it at the root level too 
-                        # This is just for validation, will be removed later
                         overview_data["debug_owgr"] = owgr_value
                 else:
                     self.logger.warning(f"Player {overview_data['player_id']} missing OWGR value")
-            
-            # Update or insert the document
             result = collection.update_one(
                 {"player_id": overview_data["player_id"]},
                 {"$set": overview_data},
@@ -605,7 +482,6 @@ class DatabaseManager:
             else:
                 self.logger.info(f"No changes to profile overview for player {overview_data['player_id']}")
             
-            # Verify the document in the database has the OWGR value
             stored_doc = collection.find_one({"player_id": overview_data["player_id"]})
             if stored_doc and "standings" in stored_doc and stored_doc["standings"] is not None:
                 if "owgr" in stored_doc["standings"] and stored_doc["standings"]["owgr"] is not None:
@@ -613,7 +489,6 @@ class DatabaseManager:
                 else:
                     self.logger.warning(f"OWGR missing in database for player {overview_data['player_id']} after insert!")
                     
-                    # Try a direct update of just the OWGR field as a last resort
                     if "standings" in overview_data and overview_data["standings"] is not None and "owgr" in overview_data["standings"]:
                         owgr = overview_data["standings"]["owgr"]
                         collection.update_one(
@@ -630,17 +505,7 @@ class DatabaseManager:
             self.logger.error(traceback.format_exc())
             raise
 
-    def get_player_career(self, player_id: str, tour_code: str = "R") -> Optional[Dict]:
-        """
-        Retrieve player career data
-        
-        Args:
-            player_id: Player identifier
-            tour_code: Tour code (default: "R" for PGA Tour)
-            
-        Returns:
-            Player career data or None if not found
-        """
+    def get_player_career(self, player_id, tour_code = "R"):
         try:
             collection = self.db["player_career"]
             result = collection.find_one({
@@ -653,10 +518,7 @@ class DatabaseManager:
             self.logger.error(f"Failed to retrieve player career data: {str(e)}")
             return None
 
-    def get_player_profile_overview(self, player_id: str):
-        """
-        Get a player's profile overview for debugging
-        """
+    def get_player_profile_overview(self, player_id):
         try:
             collection = self.db["player_profile_overview"]
             return collection.find_one({"player_id": player_id})
@@ -671,18 +533,7 @@ class DatabaseManager:
         
         
         
-    def run_query(self, collection_name: str, query: Dict, projection: Optional[Dict] = None) -> List[Dict]:
-        """
-        Run a custom query on a specified collection.
-
-        Args:
-            collection_name: Name of the collection to query.
-            query: MongoDB query (e.g., {"field": "value"}).
-            projection: Optional projection to include/exclude fields (e.g., {"field": 1}).
-
-        Returns:
-            List of documents matching the query.
-        """
+    def run_query(self, collection_name, query, projection = None):
         try:
             collection = self.db[collection_name]
             if projection:
@@ -697,8 +548,7 @@ class DatabaseManager:
         
         
         
-    def collection_exists(self, collection_name: str) -> bool:
-        """Check if a collection exists in the database"""
+    def collection_exists(self, collection_name):
         try:
             return collection_name in self.db.list_collection_names()
         except Exception as e:
@@ -706,8 +556,7 @@ class DatabaseManager:
             return False
         
         
-    def get_collection_stats(self, collection_name: str) -> Dict:
-        """Get statistics about a collection"""
+    def get_collection_stats(self, collection_name):
         try:
             if not self.collection_exists(collection_name):
                 return {"exists": False, "count": 0}
@@ -726,26 +575,14 @@ class DatabaseManager:
         
         
         
-    def get_players_batch(self, player_ids: List[str], projection: Dict = None) -> Dict[str, Any]:
-        """
-        Batch fetch multiple player profiles in a single query
-        Returns dictionary with player_id as keys
-        
-        Args:
-            player_ids: List of player IDs to fetch
-            projection: Optional fields to include/exclude
-            
-        Example:
-            projection = {"_id": 0, "player_id": 1, "owgr": 1}
-        """
+    def get_players_batch(self, player_ids, projection = None):
         try:
             if not player_ids:
                 return {}
 
             collection = self.db["player_profile_overview"]
             query = {"player_id": {"$in": player_ids}}
-            
-            # Default projection if not specified
+        
             if projection is None:
                 projection = {
                     "_id": 0,
@@ -763,18 +600,7 @@ class DatabaseManager:
             self.logger.error(f"Batch player fetch failed: {str(e)}")
             return {}
 
-    def get_tournament_players_batch(self, tournament_id: str, year: int, projection: Dict = None) -> List[Dict]:
-        """
-        Optimized fetch of all players in a tournament with single query
-        
-        Args:
-            tournament_id: Tournament ID to query
-            year: Tournament year
-            projection: Optional fields to include
-            
-        Example:
-            projection = {"players.player_id": 1, "players.position": 1}
-        """
+    def get_tournament_players_batch(self, tournament_id, year, projection = None) :
         try:
             collection = self.db["tournament_history"]
             query = {"tournament_id": tournament_id, "year": year}
@@ -798,12 +624,10 @@ class DatabaseManager:
         
         
         
-    def get_tournament_history_optimized(self, tournament_id: str, player_ids: List[str], year: int) -> Dict[str, Any]:
-        """Single query to get all player histories for a tournament"""
+    def get_tournament_history_optimized(self, tournament_id: str, player_ids, year):
         try:
             collection = self.db["tournament_history"]
             
-            # Use aggregation pipeline for maximum efficiency
             pipeline = [
                 {"$match": {
                     "tournament_id": tournament_id,

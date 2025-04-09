@@ -46,18 +46,15 @@ class HyperparameterTuner:
     
     def create_sample_dataset(self, n_tournaments=20, random_state=42):
         np.random.seed(random_state)
-        
-        # Get unique tournaments
+
         all_tournaments = self.train_df['tournament_id_code'].unique()
         
-        # Select random tournaments
         sample_tournaments = np.random.choice(
             all_tournaments, 
             size=min(n_tournaments, len(all_tournaments)), 
             replace=False
         )
         
-        # Create sample dataset
         sample_df = self.train_df[self.train_df['tournament_id_code'].isin(sample_tournaments)].copy()
         
         print(f"Created sample dataset with {len(sample_tournaments)} tournaments and {len(sample_df)} rows")
@@ -65,26 +62,6 @@ class HyperparameterTuner:
         return sample_df
     
     def evaluate_parameters(self, params, sample_df, n_episodes=5, n_tournaments=10):
-        """
-        Evaluate a specific set of hyperparameters
-        
-        Parameters:
-        -----------
-        params : dict
-            Dictionary of hyperparameters
-        sample_df : DataFrame
-            Sample dataset for quick evaluation
-        n_episodes : int
-            Number of episodes for quick training
-        n_tournaments : int
-            Number of tournaments to use in each episode
-            
-        Returns:
-        --------
-        dict
-            Results including hyperparameters and performance metrics
-        """
-        # Extract parameters
         learning_rate = params['learning_rate']
         batch_size = params['batch_size']
         hidden_layers = params['hidden_layers']
@@ -196,13 +173,10 @@ class HyperparameterTuner:
                 episode_loss /= batch_count
             else:
                 episode_loss = 0
-            
-            # Add to totals
+
             total_reward += episode_reward
             total_accuracy += episode_accuracy
             total_loss += episode_loss
-        
-        # Calculate averages
         avg_reward = total_reward / n_episodes if n_episodes > 0 else 0
         avg_accuracy = total_accuracy / n_episodes if n_episodes > 0 else 0
         avg_loss = total_loss / n_episodes if n_episodes > 0 else 0
@@ -227,27 +201,6 @@ class HyperparameterTuner:
         return result
     
     def grid_search(self, sample_size=20, n_episodes=5, n_tournaments=10, n_jobs=None):
-        """
-        Perform grid search over hyperparameter space
-        
-        Parameters:
-        -----------
-        sample_size : int
-            Number of tournaments to use in sample dataset
-        n_episodes : int
-            Number of episodes for each evaluation
-        n_tournaments : int
-            Number of tournaments per episode
-        n_jobs : int
-            Number of parallel jobs (None = all available cores)
-            
-        Returns:
-        --------
-        DataFrame
-            Results of all parameter combinations
-        dict
-            Best parameters found
-        """
         print(f"Starting grid search with {sample_size} tournaments, {n_episodes} episodes per evaluation")
         
         # Create sample dataset
@@ -264,8 +217,6 @@ class HyperparameterTuner:
         ))
         
         print(f"Total parameter combinations: {len(param_combinations)}")
-        
-        # Convert combinations to list of dictionaries
         param_dicts = []
         for combo in param_combinations:
             param_dicts.append({
@@ -276,16 +227,13 @@ class HyperparameterTuner:
                 'epsilon_decay': combo[4],
                 'dropout_rate': combo[5]
             })
-        
-        # Define evaluation function for parallel processing
         evaluate_func = partial(
             self.evaluate_parameters,
             sample_df=sample_df,
             n_episodes=n_episodes,
             n_tournaments=n_tournaments
         )
-        
-        # Determine number of processes
+
         if n_jobs is None:
             n_jobs = max(1, multiprocessing.cpu_count() - 1)  # Leave one core free
         
@@ -337,20 +285,10 @@ class HyperparameterTuner:
         return results_df, best_params
     
     def _plot_tuning_results(self, results_df):
-        """
-        Create visualizations for hyperparameter tuning results
-        
-        Parameters:
-        -----------
-        results_df : DataFrame
-            Tuning results
-        """
-        # Create plots directory
         plots_dir = os.path.join(self.output_dir, 'plots')
         if not os.path.exists(plots_dir):
             os.makedirs(plots_dir)
-        
-        # Plot 1: Learning rate vs. average reward
+
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='learning_rate', y='avg_reward', data=results_df)
         plt.title('Learning Rate vs. Average Reward')
@@ -359,8 +297,7 @@ class HyperparameterTuner:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(os.path.join(plots_dir, 'learning_rate_vs_reward.png'))
-        
-        # Plot 2: Batch size vs. average reward
+
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='batch_size', y='avg_reward', data=results_df)
         plt.title('Batch Size vs. Average Reward')
@@ -369,8 +306,7 @@ class HyperparameterTuner:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(os.path.join(plots_dir, 'batch_size_vs_reward.png'))
-        
-        # Plot 3: Gamma vs. average reward
+
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='gamma', y='avg_reward', data=results_df)
         plt.title('Gamma (Discount Factor) vs. Average Reward')
@@ -379,8 +315,7 @@ class HyperparameterTuner:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(os.path.join(plots_dir, 'gamma_vs_reward.png'))
-        
-        # Plot 4: Epsilon decay vs. average reward
+
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='epsilon_decay', y='avg_reward', data=results_df)
         plt.title('Epsilon Decay vs. Average Reward')
@@ -389,8 +324,7 @@ class HyperparameterTuner:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(os.path.join(plots_dir, 'epsilon_decay_vs_reward.png'))
-        
-        # Plot 5: Dropout rate vs. average reward
+
         plt.figure(figsize=(10, 6))
         sns.boxplot(x='dropout_rate', y='avg_reward', data=results_df)
         plt.title('Dropout Rate vs. Average Reward')
@@ -399,8 +333,7 @@ class HyperparameterTuner:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.savefig(os.path.join(plots_dir, 'dropout_rate_vs_reward.png'))
-        
-        # Plot 6: Average reward vs. average accuracy
+
         plt.figure(figsize=(10, 6))
         plt.scatter(results_df['avg_reward'], results_df['avg_accuracy'], alpha=0.6)
         plt.title('Average Reward vs. Average Accuracy')
@@ -413,32 +346,8 @@ class HyperparameterTuner:
         plt.close('all')
         
     def random_search(self, n_iterations=20, sample_size=20, n_episodes=5, n_tournaments=10, n_jobs=None):
-        """
-        Perform random search over hyperparameter space
-        
-        Parameters:
-        -----------
-        n_iterations : int
-            Number of random parameter combinations to try
-        sample_size : int
-            Number of tournaments to use in sample dataset
-        n_episodes : int
-            Number of episodes for each evaluation
-        n_tournaments : int
-            Number of tournaments per episode
-        n_jobs : int
-            Number of parallel jobs (None = all available cores)
-            
-        Returns:
-        --------
-        DataFrame
-            Results of all parameter combinations
-        dict
-            Best parameters found
-        """
         print(f"Starting random search with {n_iterations} iterations")
-        
-        # Create sample dataset
+
         sample_df = self.create_sample_dataset(n_tournaments=sample_size)
         
         # Generate random parameter combinations
@@ -473,33 +382,27 @@ class HyperparameterTuner:
         with multiprocessing.Pool(processes=n_jobs) as pool:
             results = pool.map(evaluate_func, param_dicts)
         
-        # Calculate total time
+
         total_time = datetime.now() - start_time
         print(f"Random search completed in {total_time}")
-        
-        # Convert results to DataFrame
+
         results_df = pd.DataFrame(results)
-        
-        # Sort by average reward (primary) and accuracy (secondary)
+
         results_df = results_df.sort_values(['avg_reward', 'avg_accuracy'], ascending=[False, False])
-        
-        # Save results
+
         results_path = os.path.join(self.output_dir, 'random_search_results.csv')
         results_df.to_csv(results_path, index=False)
         print(f"Random search results saved to {results_path}")
-        
-        # Get best parameters
+
         best_params = results_df.iloc[0].to_dict()
-        
-        # Convert string representation of hidden layers back to list
+
         best_params['hidden_layers'] = eval(best_params['hidden_layers'])
-        
-        # Remove metric columns
+    
         metric_cols = ['avg_reward', 'avg_accuracy', 'avg_loss', 'final_epsilon']
         for col in metric_cols:
             best_params.pop(col, None)
         
-        # Save best parameters
+
         best_params_path = os.path.join(self.output_dir, 'best_random_search_params.pkl')
         with open(best_params_path, 'wb') as f:
             pickle.dump(best_params, f)
@@ -507,13 +410,12 @@ class HyperparameterTuner:
         print("\nBest hyperparameters found by random search:")
         for param, value in best_params.items():
             print(f"{param}: {value}")
-        
-        # Visualize results
+
         self._plot_tuning_results(results_df)
         
         return results_df, best_params
 
-# Example usage
+
 if __name__ == "__main__":
     import argparse
     from golf_tournament_dqn import data_preparation
@@ -534,21 +436,18 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # Set up output directory with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_dir = os.path.join(args.output, f"tuning_{timestamp}")
     os.makedirs(output_dir, exist_ok=True)
     
     print(f"Output will be saved to: {output_dir}")
-    
-    # Prepare data
+
+
     print("Preparing data...")
     train_df, test_df, _, feature_list = data_preparation(args.data)
     
-    # Initialize tuner
     tuner = HyperparameterTuner(train_df, test_df, feature_list, output_dir=output_dir)
-    
-    # Run tuning
+
     if args.method == 'grid':
         print("Running grid search...")
         results_df, best_params = tuner.grid_search(

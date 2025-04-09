@@ -4,20 +4,8 @@ import numpy as np
 from ..base import BaseProcessor
 
 class PlayerCareerProcessor(BaseProcessor):
-    """Process player career data to create meaningful features."""
     
     def extract_features(self, player_ids=None, season=None, tournament_id=None):
-        """
-        Extract and process player career features.
-        
-        Args:
-            player_ids: List of player IDs to extract
-            season: Optional season filter
-            tournament_id: Optional tournament ID (not used for career data)
-            
-        Returns:
-            DataFrame with processed player career features
-        """
         # Extract career summary data
         career_df = self.data_extractor.extract_player_career(player_ids=player_ids)
         
@@ -36,18 +24,6 @@ class PlayerCareerProcessor(BaseProcessor):
         return features
     
     def _combine_career_data(self, career_df, yearly_df, season=None):
-        """
-        Combine career summary and yearly data into a single feature set.
-        
-        Args:
-            career_df: DataFrame from extract_player_career
-            yearly_df: DataFrame from extract_player_career_yearly
-            season: Optional season filter
-            
-        Returns:
-            Combined DataFrame with player career features
-        """
-        # Start with career data as base
         if career_df.empty:
             return pd.DataFrame()
         
@@ -107,7 +83,6 @@ class PlayerCareerProcessor(BaseProcessor):
                 col: f'career_{col}' for col in career_stats.columns if col != 'player_id'
             })
             
-            # Merge with features
             features = pd.merge(
                 features,
                 career_stats,
@@ -115,7 +90,6 @@ class PlayerCareerProcessor(BaseProcessor):
                 how='left'
             )
             
-            # Calculate career percentages
             if 'career_cuts_made' in features.columns and 'career_events' in features.columns:
                 features['career_cut_pct'] = features['career_cuts_made'] / features['career_events']
             
@@ -131,15 +105,6 @@ class PlayerCareerProcessor(BaseProcessor):
         return features
     
     def _process_achievement_data(self, df):
-        """
-        Process achievement columns to create consistent features.
-        
-        Args:
-            df: DataFrame with raw achievement columns
-            
-        Returns:
-            DataFrame with processed achievement features
-        """
         if df.empty:
             return df
         

@@ -1,4 +1,3 @@
-# feature_engineering/feature_sets/temporal_features.py
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Union
@@ -17,11 +16,9 @@ def create_recent_performance_features(player_ids: List[str], tournament_id: str
             temporal_features = _process_recent_form(current_form, window_size)
             return temporal_features
     
-    # If current_form not available, return empty DataFrame
     return pd.DataFrame({'player_id': player_ids})
 
-def create_consistency_features(player_ids: List[str], season: int, 
-                              processors: Dict, window_size: int = 5) -> pd.DataFrame:
+def create_consistency_features(player_ids, season, processors, window_size = 5):
 
     if 'tournament_history' in processors:
         if 'current_form' in processors:

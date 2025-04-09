@@ -1,4 +1,3 @@
-# test_feature_pipeline_.py
 import os
 import sys
 import pandas as pd
@@ -28,7 +27,7 @@ def plot_correlation_matrix(df, title, n_features=30, figsize=(15, 12), output_f
     else:
         df_subset = df
         
-    # Calculate correlation matrix
+
     corr = df_subset.corr()
     
     # Create figure
@@ -53,25 +52,8 @@ def plot_correlation_matrix(df, title, n_features=30, figsize=(15, 12), output_f
     
     return plt.gcf()
 
-def plot_feature_importance(feature_names, importance_values, direction=None, title='Feature Importance', 
-                           top_n=20, figsize=(12, 10), output_file=None):
-    """
-    Plot feature importance bar chart with robust error handling.
-    
-    Args:
-        feature_names: List of feature names
-        importance_values: Array of importance values
-        direction: Optional array indicating positive or negative direction
-        title: Plot title
-        top_n: Number of features to include
-        figsize: Figure size (width, height)
-        output_file: Optional path to save the plot
-        
-    Returns:
-        Matplotlib figure or None if error
-    """
+def plot_feature_importance(feature_names, importance_values, direction=None, title='Feature Importance', top_n=20, figsize=(12, 10), output_file=None):
     try:
-        # Make sure all inputs are same length and filter out NaN values
         valid_indices = []
         for i in range(len(importance_values)):
             if i < len(feature_names) and not pd.isna(importance_values[i]):
@@ -86,21 +68,17 @@ def plot_feature_importance(feature_names, importance_values, direction=None, ti
         valid_direction = [1] * len(valid_indices)  # Default to positive
         
         if direction is not None:
-            # Make sure direction is same length and fill with 1 if needed
             valid_direction = [direction[i] if i < len(direction) else 1 for i in valid_indices]
-        
-        # Create DataFrame for plotting
+
         importance_df = pd.DataFrame({
             'feature': valid_features,
             'importance': valid_importance,
             'direction': valid_direction
         })
-        
-        # Sort by absolute importance
+
         importance_df['abs_importance'] = importance_df['importance'].abs()
         importance_df = importance_df.sort_values('abs_importance', ascending=False).head(top_n)
-        
-        # Create figure
+
         plt.figure(figsize=figsize)
         bars = plt.barh(
             y=importance_df['feature'],
@@ -124,31 +102,14 @@ def plot_feature_importance(feature_names, importance_values, direction=None, ti
         return None
 
 def plot_feature_cluster_map(df, title="Feature Cluster Map", figsize=(15, 15), output_file=None):
-    """
-    Plot hierarchical cluster map of feature correlations.
-    
-    Args:
-        df: DataFrame containing features
-        title: Plot title
-        figsize: Figure size (width, height)
-        output_file: Optional path to save the plot
-        
-    Returns:
-        Matplotlib figure
-    """
-    # Calculate correlation matrix
     corr = df.corr()
-    
-    # Convert to distance matrix and ensure symmetry
+
     distance_matrix = 1 - abs(corr)
-    # Fix symmetry issues by averaging with transpose (handles floating point precision issues)
     distance_matrix = 0.5 * (distance_matrix + distance_matrix.T)
     
     try:
-        # Try using the distance matrix with squareform
         linkage = hierarchy.linkage(squareform(distance_matrix), method='average')
-        
-        # Create cluster map
+
         plt.figure(figsize=figsize)
         sns.clustermap(
             corr,
@@ -162,7 +123,6 @@ def plot_feature_cluster_map(df, title="Feature Cluster Map", figsize=(15, 15), 
         print(f"Warning: Could not create hierarchical cluster map: {str(e)}")
         print("Falling back to standard correlation heatmap")
         
-        # Fallback to simple correlation heatmap with clustering
         plt.figure(figsize=figsize)
         sns.clustermap(
             corr,
@@ -170,38 +130,20 @@ def plot_feature_cluster_map(df, title="Feature Cluster Map", figsize=(15, 15), 
             vmin=-1, vmax=1,
             figsize=figsize
         )
-    
-    # Save if path provided
+
     if output_file:
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
     
     return plt.gcf()
 
 def plot_pca_explained_variance(df, n_components=10, figsize=(10, 6), output_file=None):
-    """
-    Plot PCA explained variance to identify potential dimensionality reduction.
-    
-    Args:
-        df: DataFrame containing features
-        n_components: Number of components to analyze
-        figsize: Figure size (width, height)
-        output_file: Optional path to save the plot
-        
-    Returns:
-        Matplotlib figure
-    """
-    # Scale data
     scaler = StandardScaler()
     scaled_data = scaler.fit_transform(df)
-    
-    # Apply PCA
+
     pca = PCA(n_components=min(n_components, df.shape[1], df.shape[0]))
     pca.fit(scaled_data)
-    
-    # Create figure
     plt.figure(figsize=figsize)
-    
-    # Plot explained variance ratio
+
     plt.bar(
         range(1, len(pca.explained_variance_ratio_) + 1),
         pca.explained_variance_ratio_,
@@ -228,29 +170,13 @@ def plot_pca_explained_variance(df, n_components=10, figsize=(10, 6), output_fil
     return plt.gcf()
 
 def plot_feature_distributions(df, top_n=10, figsize=(15, 10), output_file=None):
-    """
-    Plot distribution of top features by variance.
-    
-    Args:
-        df: DataFrame containing features
-        top_n: Number of features to plot
-        figsize: Figure size (width, height)
-        output_file: Optional path to save the plot
-        
-    Returns:
-        Matplotlib figure
-    """
-    # Select numeric features only
     numeric_df = df.select_dtypes(include=['int64', 'float64'])
-    
-    # Select features with highest variance
+
     variances = numeric_df.var().sort_values(ascending=False)
     top_features = variances.index[:top_n].tolist()
-    
-    # Create figure
+
     plt.figure(figsize=figsize)
-    
-    # Create subplot grid
+
     nrows = (top_n + 1) // 2
     ncols = 2
     
@@ -267,32 +193,15 @@ def plot_feature_distributions(df, top_n=10, figsize=(15, 10), output_file=None)
     return plt.gcf()
 
 def analyze_multicollinearity(df, target_col=None, threshold=0.7, output_file=None):
-    """
-    Identify and analyze multicollinearity between features.
-    
-    Args:
-        df: DataFrame containing features
-        target_col: Optional target column to preserve
-        threshold: Correlation threshold for highlighting
-        output_file: Optional path to save the report
-        
-    Returns:
-        DataFrame of collinear features
-    """
-    # Calculate correlation matrix
     corr = df.corr().abs()
-    
-    # Get upper triangle of correlation matrix
+
     upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(bool))
-    
-    # Find features with correlation greater than threshold
+
     collinear_features = []
     for col in upper.columns:
-        # Get high correlation pairs
         high_corr = upper[col][upper[col] > threshold].index.tolist()
         
         for other_col in high_corr:
-            # Skip if target column
             if target_col and (col == target_col or other_col == target_col):
                 continue
                 
@@ -303,10 +212,8 @@ def analyze_multicollinearity(df, target_col=None, threshold=0.7, output_file=No
                 'correlation': corr_value
             })
     
-    # Create DataFrame and sort by correlation
     result = pd.DataFrame(collinear_features).sort_values('correlation', ascending=False)
-    
-    # Save if path provided
+
     if output_file and not result.empty:
         with open(output_file, 'w') as f:
             f.write("# Multicollinearity Analysis\n\n")
@@ -317,62 +224,41 @@ def analyze_multicollinearity(df, target_col=None, threshold=0.7, output_file=No
     return result
 
 def model_based_importance(df, target_col, method='rf', n_estimators=100, output_file=None):
-    """
-    Calculate feature importance using a model-based approach.
-    
-    Args:
-        df: DataFrame containing features
-        target_col: Target column for importance calculation
-        method: Model to use ('rf' for Random Forest)
-        n_estimators: Number of estimators for ensemble methods
-        output_file: Optional path to save the importance scores
-        
-    Returns:
-        DataFrame with feature importance scores or None if error
-    """
     try:
-        # Get numeric features only
         numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
-        
-        # Remove target column from features
+
         features = [col for col in numeric_cols if col != target_col]
         
         if not features:
             print(f"Warning: No suitable numeric features found for model-based importance")
             return None
-            
-        # Prepare data
+
         X = df[features].fillna(df[features].mean())
         y = df[target_col]
-        
-        # Train model based on method
+
         if method == 'rf':
             model = RandomForestRegressor(n_estimators=n_estimators, random_state=42, n_jobs=-1)
             model.fit(X, y)
             importance = model.feature_importances_
         else:
             raise ValueError(f"Unknown method: {method}")
-        
-        # Create importance DataFrame
+
         importance_df = pd.DataFrame({
             'feature': features,
             'importance': importance
         }).sort_values('importance', ascending=False)
-        
-        # Normalize importance
+
         max_importance = importance_df['importance'].max()
         if max_importance > 0:
             importance_df['importance_norm'] = importance_df['importance'] / max_importance
         else:
             importance_df['importance_norm'] = 0
         
-        # Add direction (we need to calculate feature correlation with target)
         importance_df['direction'] = [
             1 if not pd.isna(df[feature].corr(df[target_col])) and df[feature].corr(df[target_col]) > 0 else -1
             for feature in importance_df['feature']
         ]
-        
-        # Save if path provided
+
         if output_file:
             importance_df.to_csv(output_file, index=False)
         
@@ -385,31 +271,28 @@ def model_based_importance(df, target_col, method='rf', n_estimators=100, output
 def main():
     print("==== Testing Improved Feature Engineering Pipeline ====")
     
-    # Step 1: Load the test data
     print("\nLoading test features...")
     features_df = pd.read_csv(os.path.join(current_dir, 'output', 'all_tournaments_features_20250406_190259.csv'))
     print(f"Loaded {len(features_df)} rows with {len(features_df.columns)} features")
     
-    # Create output directory for visualizations
+
     output_dir = os.path.join(current_dir, 'feature_analysis')
     os.makedirs(output_dir, exist_ok=True)
     
-    # Step 2: Transform features
+
     print("\nTransforming features...")
     transformer = FeatureTransformer(drop_timestamps=True, special_player_ids=["35891"])
     transformed_df = transformer.fit_transform(features_df)
     print(f"Transformed data has {transformed_df.shape[1]} features")
     
-    # Step 3: Analyze transformed features
     print("\nAnalyzing transformed features...")
     analyzer = FeatureAnalyzer(transformed_df)
     analysis_results = analyzer.analyze_features()
     
-    # Generate analysis report
+    
     analyzer.generate_analysis_report(os.path.join(output_dir, 'feature_analysis_report.md'))
     
-    # Plot correlation matrix for transformed features
-    print("\nGenerating correlation matrix visualization...")
+    print("\nGenerating correlation matrix visualisation...")
     plot_correlation_matrix(
         transformed_df.select_dtypes(include=['int64', 'float64']),
         "Feature Correlation Matrix (Transformed Data)",
@@ -417,11 +300,9 @@ def main():
         output_file=os.path.join(output_dir, 'correlation_matrix.png')
     )
     
-    # Step 4: Apply feature selection on transformed data
     print("\nApplying improved feature selection...")
     selector = FeatureSelector(transformed_df, analyzer)
-    
-    # Select features with the combined method
+
     selected_df = selector.select_features(method='combined', params={
         'n_features': 50,
         'variance_threshold': 0.005,
@@ -429,30 +310,25 @@ def main():
         'target_col': 'victory_potential', 
         'include_special_columns': True
     })
-    
-    # Step 5: Apply explicit filter for non-predictive features
+
     print("\nFiltering out non-predictive features...")
     filtered_df = selector.filter_non_predictive_features(selected_df)
     print(f"After filtering: {filtered_df.shape[1]} features remaining")
-    
-    # Save final selected features
+
     filtered_df.to_csv(os.path.join(output_dir, 'predictive_features.csv'), index=False)
     print(f"\nPredictive features saved to {os.path.join(output_dir, 'predictive_features.csv')}")
-    
-    # Print selected features
+
     print("\nSelected predictive features:")
     for feature in filtered_df.columns[:20]:
         print(f"- {feature}")
-    
-    # Plot correlation matrix for filtered features
+
     print("\nGenerating correlation matrix for selected features...")
     plot_correlation_matrix(
         filtered_df.select_dtypes(include=['int64', 'float64']),
         "Correlation Matrix (Selected Features)",
         output_file=os.path.join(output_dir, 'selected_correlation_matrix.png')
     )
-    
-    # Analyze multicollinearity
+
     print("\nAnalyzing multicollinearity...")
     multicollinearity = analyze_multicollinearity(
         filtered_df.select_dtypes(include=['int64', 'float64']), 
@@ -460,8 +336,7 @@ def main():
         threshold=0.8,
         output_file=os.path.join(output_dir, 'multicollinearity_report.md')
     )
-    
-    # Plot feature cluster map
+
     print("\nGenerating feature cluster map...")
     try:
         plot_feature_cluster_map(
@@ -473,20 +348,18 @@ def main():
         print(f"Warning: Feature cluster map generation failed: {str(e)}")
         print("Continuing with analysis...")
     
-    # Plot feature distributions
+
     print("\nGenerating feature distributions...")
     plot_feature_distributions(
         filtered_df,
         top_n=12,
         output_file=os.path.join(output_dir, 'feature_distributions.png')
     )
-    
-    # Step 6: Evaluate feature importance if target exists
+
     if 'victory_potential' in filtered_df.columns:
         print("\nEvaluating feature importance...")
         
         try:
-            # Calculate correlation-based importance
             numeric_features = filtered_df.select_dtypes(include=['int64', 'float64']).columns.tolist()
             numeric_features = [col for col in numeric_features if col not in ['player_id', 'tournament_id']]
             
@@ -505,7 +378,7 @@ def main():
                     except Exception as e:
                         print(f"Warning: Could not calculate correlation for {feature}: {str(e)}")
             
-            # Plot correlation-based importance
+      
             print("\nGenerating correlation-based importance plot...")
             plot_feature_importance(
                 valid_features,
@@ -515,7 +388,7 @@ def main():
                 output_file=os.path.join(output_dir, 'correlation_importance.png')
             )
             
-            # Calculate model-based importance
+   
             print("\nCalculating model-based importance...")
             model_importance = model_based_importance(
                 filtered_df,
@@ -523,7 +396,7 @@ def main():
                 output_file=os.path.join(output_dir, 'model_importance.csv')
             )
             
-            # Plot model-based importance if available
+
             if model_importance is not None:
                 print("\nGenerating model-based importance plot...")
                 plot_feature_importance(
@@ -534,7 +407,6 @@ def main():
                     output_file=os.path.join(output_dir, 'model_importance.png')
                 )
                 
-                # Print top features by importance
                 print("\nTop 20 features by model-based importance:")
                 for _, row in model_importance.head(20).iterrows():
                     direction = "positive" if row['direction'] > 0 else "negative"
@@ -545,7 +417,7 @@ def main():
         except Exception as e:
             print(f"Warning: Feature importance evaluation failed: {str(e)}")
     
-    # Look for potential dimensionality reduction
+
     print("\nAnalyzing potential dimensionality reduction with PCA...")
     try:
         plot_pca_explained_variance(

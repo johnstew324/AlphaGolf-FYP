@@ -30,35 +30,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Set the years for tournament scraping and player stats
+
 TOURNAMENT_YEARS = [2014, 2015,2016,2017,2018,2019, 2020, 2021, 2022, 2023, 2024, 2025]
 PLAYER_STATS_YEARS = [2014, 2015,2016,2017,2018,2019, 2020, 2021, 2022, 2023, 2024, 2025]
-HISTORY_START_YEAR = 2007  # Start historical data from 2007
+HISTORY_START_YEAR = 2007 
 HISTORY_END_YEAR = 2025    
 
-# File paths for JSON data
 PLAYERS_JSON = "C:\\Users\\johns\\AlphaGOLF-FYP\\AlphaGolf\\data\\raw_jsons\\players.json"
 TOURNAMENTS_JSON= "C:\\Users\\johns\\AlphaGOLF-FYP\\AlphaGolf\\data\\raw_jsons\\tournaments.json"
 TOURNAMENTS_WEATHER_JSON = "C:\\Users\\johns\\AlphaGOLF-FYP\\AlphaGolf\\data\\raw_jsons\\tournaments_location_dates.json"
 
-# Load JSON data
 def load_json_data():
     try:
-        # Load players data
         with open(PLAYERS_JSON, 'r') as f:
             players_data = json.load(f)
         logger.info(f"Loaded {len(players_data)} players from JSON file")
         
-        # Filter to only active players
         active_players = [player for player in players_data if player.get('isActive', False)]
         logger.info(f"Found {len(active_players)} active players")
         
-        # Load tournaments data
         with open(TOURNAMENTS_JSON, 'r') as f:
             tournaments_data = json.load(f)
         logger.info(f"Loaded {len(tournaments_data)} tournaments from JSON file")
         
-        # Load tournament weather data
         with open(TOURNAMENTS_WEATHER_JSON, 'r') as f:
             tournaments_weather_data = json.load(f)
         logger.info(f"Loaded tournament weather data from JSON file")
@@ -69,13 +63,11 @@ def load_json_data():
         return [], [], []
 
 async def safe_scrape_and_store(scraper_name: str, scraper_func, db_store_func, *args, **kwargs):
-    """Safely execute a scrape operation and store the results"""
     try:
         logger.info(f"Starting {scraper_name}")
         data = await scraper_func(*args, **kwargs)
         
         if data:
-            # Handle potential None values in stat_headers for certain scrapers
             if isinstance(data, dict) and 'stat_headers' in data and data['stat_headers'] is None:
                 data['stat_headers'] = []
 
@@ -100,7 +92,6 @@ async def safe_scrape_and_store(scraper_name: str, scraper_func, db_store_func, 
         return False
 
 async def scrape_tournament_weather(weather_scraper: WeatherScraper, tournament_data: dict, db_manager: DatabaseManager):
-    """Scrape weather data for a single tournament"""
     try:
         tournament_id = tournament_data.get("Tournament ID")
         tournament_name = tournament_data.get("Tournament Name")
@@ -123,7 +114,6 @@ async def scrape_tournament_weather(weather_scraper: WeatherScraper, tournament_
         return False
 
 async def scrape_weather_from_json(db_manager: DatabaseManager, api_key: str, tournaments_weather_data: list):
-    """Scrape weather data from provided tournament weather data"""
     try:
         if not api_key:
             logger.error("Weather API key not found in configuration")
@@ -144,13 +134,11 @@ async def scrape_weather_from_json(db_manager: DatabaseManager, api_key: str, to
         logger.info(f"Initializing weather scraper for {len(all_tournaments)} tournaments")
         weather_scraper = WeatherScraper(api_key)
         
-        # Process each tournament
         processed_count = 0
         for tournament in all_tournaments:
             try:
                 if await scrape_tournament_weather(weather_scraper, tournament, db_manager):
                     processed_count += 1
-                # Add a small delay to avoid rate limiting
                 await asyncio.sleep(0.5)
             except Exception as e:
                 logger.error(f"Error processing tournament weather: {str(e)}")
@@ -164,7 +152,6 @@ async def scrape_weather_from_json(db_manager: DatabaseManager, api_key: str, to
         return False
 
 async def scrape_tournament_data(tournament: dict, db_manager: DatabaseManager, scrapers: dict):
-    """Scrape all data for a single tournament with proper handling of round data"""
     try:
         tournament_id = tournament.get("id")
         if not tournament_id.startswith("R") and len(tournament_id) <= 3:
@@ -190,7 +177,6 @@ async def scrape_tournament_data(tournament: dict, db_manager: DatabaseManager, 
         logger.error(f"Error processing tournament {tournament.get('name', 'unknown')}: {str(e)}")
 
 async def scrape_single_tournament_id(tournament_id: str, tournament_name: str, db_manager: DatabaseManager, scrapers: dict):
-    """Scrape data for a single tournament ID"""
     try:
         logger.info(f"Processing tournament ID: {tournament_id}")
         
@@ -210,7 +196,6 @@ async def scrape_single_tournament_id(tournament_id: str, tournament_name: str, 
             logger.info(f"Found {len(courses)} courses for tournament {tournament_id}")
             
             for course in courses:
-                # Use test_scrape_course_stats which we know works correctly
                 logger.info(f"Scraping course {course['course_name']} (ID: {course['course_id']})")
                 course_data = await scrapers['course'].test_scrape_course_stats(tournament_id, course['course_id'])
                 
@@ -288,14 +273,10 @@ async def scrape_single_tournament_id(tournament_id: str, tournament_name: str, 
         logger.error(f"Error processing tournament ID {tournament_id}: {str(e)}")
 
 async def scrape_historical_data(tournament: dict, db_manager: DatabaseManager, scrapers: dict):
-    """
-    Scrape historical tournament data for a single tournament
-    """
     try:
         tournament_id = tournament.get("id")
         tournament_name = tournament.get("name", "Unknown")
         
-        # Format the tournament ID with the most recent year for historical data
         if not tournament_id.startswith("R"):
             most_recent_tournament_id = f"R{max(TOURNAMENT_YEARS)}{tournament_id}"
         else:
@@ -324,7 +305,6 @@ async def scrape_historical_data(tournament: dict, db_manager: DatabaseManager, 
         return False
 
 async def scrape_player_data(player: dict, all_tournaments: list, db_manager: DatabaseManager, scrapers: dict):
-    """Scrape all data for a single player"""
     try:
         player_id = player.get('id')
         player_name = player.get('name')
@@ -335,7 +315,7 @@ async def scrape_player_data(player: dict, all_tournaments: list, db_manager: Da
             
         logger.info(f"Processing player: {player_name} (ID: {player_id})")
         
-        # 1. Player stats for recent years
+
         for year in PLAYER_STATS_YEARS:
             await safe_scrape_and_store(
                 f"player stats for {year}",
@@ -346,7 +326,6 @@ async def scrape_player_data(player: dict, all_tournaments: list, db_manager: Da
                 year
             )
             
-        # 2. Player career data
         await safe_scrape_and_store(
             "player career data",
             scrapers['player_career'].scrape_player_career,
@@ -355,7 +334,7 @@ async def scrape_player_data(player: dict, all_tournaments: list, db_manager: Da
             "R"  # PGA Tour code
         )
         
-        # 3. Player profile overview data
+ 
         await safe_scrape_and_store(
             "player profile overview",
             scrapers['player_overview'].scrape_player_profile_overview,
@@ -364,7 +343,6 @@ async def scrape_player_data(player: dict, all_tournaments: list, db_manager: Da
             "R"  # PGA Tour code
         )
             
-        # 4. Get scorecards for recent tournaments (2024-2025 only)
         recent_tournament_ids = []
         for tournament in all_tournaments:
             tournament_id = tournament.get("id")
@@ -402,7 +380,6 @@ async def scrape_player_data(player: dict, all_tournaments: list, db_manager: Da
         logger.error(f"Error processing player {player.get('name', 'unknown')}: {str(e)}")
 
 async def main_scraper():
-    """Main function for scraping data from JSON files"""
     try:
         # Load data from JSON files
         active_players, tournaments_data, tournaments_weather_data = load_json_data()
@@ -438,7 +415,6 @@ async def main_scraper():
         else:
             logger.warning("Visual Crossing API key not found or no weather data available, skipping weather data scraping")
         
-        # 1. Scrape historical data for all tournaments
         for tournament in tournaments_data:
             await scrape_historical_data(tournament, db_manager, scrapers)
             # Add a small delay to avoid rate limiting
@@ -449,8 +425,7 @@ async def main_scraper():
             await scrape_tournament_data(tournament, db_manager, scrapers)
             # Add delay between tournaments to respect rate limits
             await asyncio.sleep(2)
-        
-        # 3. Process all active player data
+
         for player in active_players:
             await scrape_player_data(player, tournaments_data, db_manager, scrapers)
             # Add delay between players to respect rate limits
@@ -467,7 +442,7 @@ async def main_scraper():
             await scraper.close()
 
 async def main():
-    """Entry point"""
+
     start_time = time.time()
     logger.info("Starting main scraping for all tournaments and active players from JSON files...")
     

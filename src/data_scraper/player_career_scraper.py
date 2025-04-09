@@ -6,26 +6,29 @@ import asyncio
 
 # Pydantic models for player career statistics, data, and dataset, row data, and table data
 # found through api query to playerProfileCareer
+from pydantic import BaseModel, validator, Field
+from datetime import datetime
+
 class AchievementData(BaseModel):
-    title: str
-    value: str
+    title = None
+    value = None
 
 class YearlyStatData(BaseModel):
-    year: int
-    display_season: str
-    tour_code: str
-    events: Optional[int] = None
-    wins: Optional[int] = None
-    top10: Optional[int] = None
-    top25: Optional[int] = None
-    cuts_made: Optional[int] = None
-    second: Optional[int] = None
-    third: Optional[int] = None
-    official_money: Optional[str] = None
-    standings_points: Optional[float] = None
-    standings_rank: Optional[int] = None
-    withdrawn: Optional[int] = None
-    
+    year = None
+    display_season = None
+    tour_code = None
+    events = None
+    wins = None
+    top10 = None
+    top25 = None
+    cuts_made = None
+    second = None
+    third = None
+    official_money = None
+    standings_points = None
+    standings_rank = None
+    withdrawn = None
+
     @validator('events', 'wins', 'top10', 'top25', 'cuts_made', 'second', 'third', 'withdrawn', 'standings_rank', pre=True)
     def validate_int_fields(cls, v):
         if v is None or v == '':
@@ -45,44 +48,42 @@ class YearlyStatData(BaseModel):
             return None
 
 class TableRowData(BaseModel):
-    row_title: str
-    row_title_detail: Optional[str] = None
-    row_content: str
-    second_content: Optional[str] = None
-    
-    # Add validators to handle list values
+    row_title = None
+    row_title_detail = None
+    row_content = None
+    second_content = None
+
     @validator('row_content', 'second_content', pre=True)
     def validate_content_fields(cls, v):
         if isinstance(v, list):
-            # Join list elements into a string
             return ' '.join(v)
         return v
 
 class TableData(BaseModel):
-    table_name: str
-    table_detail: Optional[str] = None
-    rows: List[TableRowData]
+    table_name = None
+    table_detail = None
+    rows = []
 
 class PlayerCareerData(BaseModel):
-    player_id: str
-    tour_code: str
-    events: Optional[int] = None
-    wins: Optional[int] = None
-    wins_title: Optional[str] = None
-    international_wins: Optional[int] = None
-    major_wins: Optional[int] = None
-    cuts_made: Optional[int] = None
-    runner_up: Optional[int] = None
-    second: Optional[int] = None
-    third: Optional[int] = None
-    top10: Optional[int] = None
-    top25: Optional[int] = None
-    official_money: Optional[str] = None
-    years: List[YearlyStatData] = []
-    achievements: List[AchievementData] = []
-    tables: List[TableData] = []
-    collected_at: datetime = Field(default_factory=datetime.utcnow)
-    
+    player_id = None
+    tour_code = None
+    events = None
+    wins = None
+    wins_title = None
+    international_wins = None
+    major_wins = None
+    cuts_made = None
+    runner_up = None
+    second = None
+    third = None
+    top10 = None
+    top25 = None
+    official_money = None
+    years = []
+    achievements = []
+    tables = []
+    collected_at = Field(default_factory=datetime.utcnow)
+
     @validator('events', 'wins', 'international_wins', 'major_wins', 'cuts_made', 
                'runner_up', 'second', 'third', 'top10', 'top25', pre=True)
     def validate_int_fields(cls, v):
@@ -93,10 +94,8 @@ class PlayerCareerData(BaseModel):
         except (ValueError, TypeError):
             return None
 
-# Data scraper class for player career statistics
-# Scrapes player career statistics from the API using the playerProfileCareer response
 class PlayerCareerScraper(BaseDataScraper):
-    def __init__(self, url: str, headers: Dict[str, str]):
+    def __init__(self, url, headers):
         super().__init__(url, headers)
         self.query = """
         query PlayerProfileCareer($playerId: String!, $tourCode: TourCode) {
@@ -154,7 +153,7 @@ class PlayerCareerScraper(BaseDataScraper):
         """
 
 # parse api reponse
-    async def parse_response(self, response_data: Dict) -> Optional[Dict]:
+    async def parse_response(self, response_data):
         try:
             if not response_data or 'data' not in response_data:
                 self.logger.warning("No data found in response")
@@ -262,7 +261,7 @@ class PlayerCareerScraper(BaseDataScraper):
             return None
 
 #scraper class - player career statistics
-    async def scrape_player_career(self, player_id: str, tour_code: str = "R") -> Optional[Dict]:
+    async def scrape_player_career(self, player_id, tour_code = "R") :
         
         try:
             self.logger.info(f"Fetching career stats for player {player_id} on tour {tour_code}")
@@ -284,7 +283,7 @@ class PlayerCareerScraper(BaseDataScraper):
             return None
 
 # batch processing of multiple players
-    async def scrape_multiple_players(self, player_ids: List[str], tour_code: str = "R") -> List[Dict]:
+    async def scrape_multiple_players(self, player_ids, tour_code = "R"):
         try:
             self.logger.info(f"Batch processing career stats for {len(player_ids)} players")
             tasks = []
