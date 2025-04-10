@@ -1,13 +1,13 @@
 import pandas as pd
 import numpy as np
-import tensorflow as tf
+import tensorflow as tf 
 from tensorflow.keras.models import Sequential # type: ignore
 from tensorflow.keras.layers import Dense, Dropout # type: ignore
 from tensorflow.keras.optimizers import Adam # type: ignore
 from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau, EarlyStopping # type: ignore
-import scikit-learn as sklearn
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
+import sklearn as sk # type: ignore
+from sklearn.preprocessing import StandardScaler # type: ignore
+from sklearn.model_selection import train_test_split # type: ignore
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import deque

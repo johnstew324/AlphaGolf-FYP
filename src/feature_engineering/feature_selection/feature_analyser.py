@@ -504,12 +504,6 @@ class FeatureAnalyzer:
         return plt.gcf()
     
     def get_feature_recommendations(self):
-        """
-        Get feature selection recommendations based on analysis.
-        
-        Returns:
-            Dict with recommended features to keep or remove
-        """
         if not self.analysis_results:
             self.analyze_features()
         

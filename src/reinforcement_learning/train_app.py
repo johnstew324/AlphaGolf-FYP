@@ -3,7 +3,7 @@ import numpy as np
 from golf_tournament_dqn import data_preparation, DQNAgent, train_dqn_agent
 
 # Prepare data
-train_df, test_df, holdout_df, feature_list = data_preparation("enhanced_winner_features.csv")
+train_df, test_df, holdout_df, feature_list = data_preparation("features_set_with_winners.csv")
 
 # Print the first few features to verify
 print("First 10 features:", feature_list[:10])
@@ -13,7 +13,7 @@ if 'position_numeric' in feature_list:
     print("WARNING: position_numeric is in feature list! Removing it...")
     feature_list.remove('position_numeric')
 
-# Find and remove any feature containing string data
+
 features_to_remove = []
 for feature in feature_list:
     for df in [train_df, test_df, holdout_df]:

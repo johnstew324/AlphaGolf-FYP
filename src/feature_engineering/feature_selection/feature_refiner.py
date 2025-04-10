@@ -1,5 +1,3 @@
-# feature_engineering/feature_selection/feature_refiner.py
-
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import GradientBoostingRegressor
@@ -42,18 +40,6 @@ class FeatureRefiner:
         self.group_representatives = {}
         
     def identify_core_features(self, importance_threshold=0.5, correlation_threshold=0.8, max_features=50):
-        """
-        Identify core features that should be considered for all prediction targets.
-        
-        Args:
-            importance_threshold: Minimum importance score to consider
-            correlation_threshold: Maximum correlation allowed between features
-            max_features: Maximum number of core features to select
-            
-        Returns:
-            Set of core feature names
-        """
-        # Get feature importance results if available
         if 'importance_victory_potential' in self.analyzer.analysis_results:
             importance_df = self.analyzer.analysis_results['importance_victory_potential']
             
@@ -96,16 +82,6 @@ class FeatureRefiner:
             return self.core_features
     
     def select_group_representatives(self, correlated_groups, target_col=None):
-        """
-        Select representative features from correlated groups.
-        
-        Args:
-            correlated_groups: List of lists containing correlated feature groups
-            target_col: Optional target column to select features by importance
-            
-        Returns:
-            Dict mapping group names to selected representative features
-        """
         representatives = {}
         
         # If we have target information and importance analysis, use it
@@ -157,17 +133,6 @@ class FeatureRefiner:
         return representatives
     
     def create_target_specific_features(self, features_df, target_df=None, methods=None):
-        """
-        Create target-specific feature sets optimized for different prediction targets.
-        
-        Args:
-            features_df: DataFrame with features
-            target_df: Optional DataFrame with targets
-            methods: Dict mapping target names to selection methods
-            
-        Returns:
-            Dict mapping target names to feature lists
-        """
         if methods is None:
             methods = {
                 'win': 'model_based',
@@ -204,7 +169,6 @@ class FeatureRefiner:
         return self.target_specific_features
     
     def _map_target_name_to_column(self, target_name):
-        """Map target names to actual column names."""
         mapping = {
             'win': 'winner',
             'cut': 'made_cut',
@@ -215,7 +179,6 @@ class FeatureRefiner:
         return mapping.get(target_name, target_name)
     
     def _select_by_model_importance(self, df, target_col, n_features=50):
-        """Select features using gradient boosting importance."""
         # Get numeric features only
         numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
         
@@ -249,8 +212,6 @@ class FeatureRefiner:
         return importance.head(n_features)['feature'].tolist()
     
     def _select_by_correlation(self, df, target_col, n_features=50):
-        """Select features using correlation with target."""
-        # Get numeric features only
         numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
         
         # Remove target and ID columns
@@ -273,17 +234,6 @@ class FeatureRefiner:
         return [item[0] for item in correlations[:n_features]]
     
     def create_interaction_features(self, df, base_features=None, target_col=None):
-        """
-        Create interaction features based on domain knowledge and correlation patterns.
-        
-        Args:
-            df: DataFrame with features
-            base_features: Optional list of features to use for interactions
-            target_col: Optional target column to evaluate interactions
-            
-        Returns:
-            DataFrame with added interaction features
-        """
         if base_features is None:
             base_features = list(self.core_features)
         
@@ -366,19 +316,6 @@ class FeatureRefiner:
     
     def evaluate_feature_stability(self, df, target_col, feature_subset=None, 
                               n_splits=5, output_dir=None):
-        """
-        Evaluate stability of feature importance across time-based folds.
-        
-        Args:
-            df: DataFrame with features and target
-            target_col: Target column name
-            feature_subset: Optional list of features to evaluate
-            n_splits: Number of time-based folds
-            output_dir: Directory to save visualization
-            
-        Returns:
-            DataFrame with stability scores for features
-        """
         if feature_subset is None:
             feature_subset = list(self.core_features)
         
@@ -477,7 +414,6 @@ class FeatureRefiner:
         return stability
     
     def _visualize_feature_stability(self, all_importances, stability, output_dir):
-        """Create visualizations for feature stability analysis."""
         os.makedirs(output_dir, exist_ok=True)
         
         # Plot feature importance distribution across folds
@@ -507,18 +443,6 @@ class FeatureRefiner:
     
     def get_optimized_feature_set(self, target_type='win', include_interactions=True, 
                                  max_features=50):
-        """
-        Get the optimized feature set for a specific prediction target.
-        
-        Args:
-            target_type: Target type ('win', 'cut', 'top3', 'top10')
-            include_interactions: Whether to include interaction features
-            max_features: Maximum number of features to include
-            
-        Returns:
-            List of optimized feature names
-        """
-        # Start with core features
         selected = set(self.core_features)
         
         # Add target-specific features
@@ -556,15 +480,6 @@ class FeatureRefiner:
         return list(selected)
     
     def save_feature_sets(self, output_path):
-        """
-        Save the optimized feature sets to a JSON file.
-        
-        Args:
-            output_path: Path to save the feature sets
-            
-        Returns:
-            None
-        """
         import json
         
         # Create dictionary of feature sets

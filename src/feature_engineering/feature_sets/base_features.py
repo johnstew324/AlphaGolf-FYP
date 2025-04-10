@@ -5,19 +5,6 @@ from typing import Dict, List, Optional, Union
 
 def create_player_performance_features(player_ids: List[str], season: int, 
                                       processors: Dict, tournament_id: str = None) -> pd.DataFrame:
-    """
-    Create core player performance features from player statistics.
-    
-    Args:
-        player_ids: List of player IDs to include
-        season: The current season
-        processors: Dictionary of processor instances
-        tournament_id: Optional tournament ID
-        
-    Returns:
-        DataFrame with player performance features
-    """
-    # Start with basic player stats
     player_stats = processors['player_form'].extract_features(
         player_ids=player_ids, 
         season=season, 
@@ -369,27 +356,14 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     weather_features = create_weather_features(tournament_id, player_ids, processors, season)
     scorecard_features = create_scorecard_features(tournament_id, player_ids, processors, season)
     
-    # Add position data if data_extractor is provided
-    position_features = pd.DataFrame()
-    if data_extractor is not None:
-        history_tournament_id = tournament_id
-        if tournament_id.startswith("R") and len(tournament_id) >= 8:
-            tournament_part = tournament_id[5:]
-            history_tournament_id = f"R2025{tournament_part}"
-        
-        position_features = extract_position_and_winner_data(
-            data_extractor,
-            history_tournament_id,
-            player_ids
-        )
+    # Remove position features section - no longer using extract_position_and_winner_data
     
     # Combine all features
     all_features = []
     
     # Start with player IDs if all features are empty
     if (performance_features.empty and history_features.empty and career_features.empty and 
-        course_features.empty and weather_features.empty and scorecard_features.empty and
-        position_features.empty):
+        course_features.empty and weather_features.empty and scorecard_features.empty):
         return pd.DataFrame({'player_id': player_ids, 'tournament_id': tournament_id})
     
     # Add features that have data
@@ -411,11 +385,7 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     if not scorecard_features.empty:
         all_features.append(scorecard_features)
     
-    if not position_features.empty:
-        all_features.append(position_features)
-        has_position = 1
-    else:
-        has_position = 0
+    # Remove position_features from the feature inclusion logic
     
     # Merge all feature sets
     base_features = _merge_feature_sets(all_features, on='player_id')
@@ -424,7 +394,8 @@ def create_base_features(tournament_id: str, season: int, player_ids: List[str],
     if not base_features.empty:
         base_features['feature_year'] = season
         base_features['tournament_id_standard'] = tournament_id
-        base_features['has_position_data'] = has_position
+        
+        # Remove has_position_data flag
         
         # Calculate data completeness
         has_columns = [col for col in base_features.columns if col.startswith('has_')]
@@ -541,15 +512,6 @@ def _add_derived_history_metrics(features: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def _add_derived_career_metrics(features: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add derived career metrics to the feature set.
-    
-    Args:
-        features: DataFrame with raw career metrics
-        
-    Returns:
-        DataFrame with added derived metrics
-    """
     df = features.copy()
     
     # Calculate additional career metrics

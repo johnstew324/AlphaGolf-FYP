@@ -1,42 +1,30 @@
-# feature_engineering/feature_sets/interaction_features.py
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Union
 
-def create_player_course_interactions(player_features: pd.DataFrame, 
-                                     course_features: pd.DataFrame) -> pd.DataFrame:
+def create_player_course_interactions(player_features,  course_features):
     if 'player_id' not in player_features.columns:
         return pd.DataFrame()
-        
-    # Extract base player data
-    interactions = player_features[['player_id']].copy()
     
-    # Check if we have course features
+    interactions = player_features[['player_id']].copy()
+
     if course_features.empty:
         return interactions
-    
-    # Map course features to each player
     for col in course_features.columns:
         if col not in ['player_id', 'tournament_id'] and not col.startswith('has_'):
-            # Add course feature as global feature for all players
             interactions[f'course_{col}'] = course_features[col].iloc[0] if len(course_features) > 0 else None
-    
-    # ======= Create SG × Course Characteristic Interactions =======
     sg_categories = ['sg_ott', 'sg_app', 'sg_atg', 'sg_p', 'sg_tot']
-    
-    # Key course characteristics that might interact with SG categories
+
     course_characteristics = {
-        'par3_to_par': ['sg_app', 'sg_atg', 'sg_p'],  # Par 3 performance relates to approach, around green, putting
-        'par4_to_par': ['sg_ott', 'sg_app'],          # Par 4 performance relates to driving and approach
-        'par5_to_par': ['sg_ott', 'sg_app'],          # Par 5 performance relates to driving and approach
-        'yards_per_par': ['sg_ott'],                  # Course length interacts with driving
-        'scoring_difficulty': sg_categories,          # Overall difficulty interacts with all SG categories
-        'bogeys_pct': ['sg_app', 'sg_atg'],           # Bogey avoidance through approach and around green
-        'birdies_pct': ['sg_app', 'sg_p'],            # Birdie conversion through approach and putting
-        'avg_windspeed': ['sg_ott', 'sg_app']         # Wind affects driving and approach the most
+        'par3_to_par': ['sg_app', 'sg_atg', 'sg_p'],  
+        'par4_to_par': ['sg_ott', 'sg_app'],          
+        'par5_to_par': ['sg_ott', 'sg_app'],         
+        'yards_per_par': ['sg_ott'],                  
+        'scoring_difficulty': sg_categories,       
+        'bogeys_pct': ['sg_app', 'sg_atg'],         
+        'birdies_pct': ['sg_app', 'sg_p'],        
+        'avg_windspeed': ['sg_ott', 'sg_app']   
     }
-    
-    # Calculate interactions for available combinations
     for course_char, sg_list in course_characteristics.items():
         if course_char in course_features.columns:
             course_value = course_features[course_char].iloc[0] if len(course_features) > 0 else None
@@ -49,8 +37,6 @@ def create_player_course_interactions(player_features: pd.DataFrame,
                             player_features[sg] * course_value
                         )
     
-    # ======= Create Par-Type Scoring Advantages =======
-    # Example: Player with good par 5 scoring × course with many par 5 scoring opportunities
     par_advantages = {
         'par3_scoring_avg': ['par3_count', 'par3_scoring_avg'],
         'par4_scoring_avg': ['par4_count', 'par4_scoring_avg'],
@@ -59,23 +45,18 @@ def create_player_course_interactions(player_features: pd.DataFrame,
     
     for player_stat, course_stats in par_advantages.items():
         if player_stat in player_features.columns and all(stat in course_features.columns for stat in course_stats):
-            # Get course values
             count = course_features[course_stats[0]].iloc[0] if len(course_features) > 0 else None
             avg = course_features[course_stats[1]].iloc[0] if len(course_features) > 0 else None
             
             if count is not None and avg is not None and not pd.isna(count) and not pd.isna(avg):
-                # Create advantage score - positive means player is better than course average
-                par_type = player_stat.split('_')[0]  # Extract par3, par4, or par5
+                par_type = player_stat.split('_')[0] 
                 interactions[f'{par_type}_advantage'] = avg - player_features[player_stat]
                 interactions[f'{par_type}_weighted_advantage'] = (avg - player_features[player_stat]) * count
-    
-    # ======= Create Putting × Green Interactions =======
     if 'sg_p' in player_features.columns and 'overview_green' in course_features.columns:
-        # Create putting surface interaction
+
         green_type = course_features['overview_green'].iloc[0] if len(course_features) > 0 else None
         
         if green_type is not None and not pd.isna(green_type):
-            # Create categorical green type variable
             green_types = ['Bentgrass', 'Bermudagrass', 'Poa annua', 'Paspalum']
             for g_type in green_types:
                 if g_type.lower() in str(green_type).lower():

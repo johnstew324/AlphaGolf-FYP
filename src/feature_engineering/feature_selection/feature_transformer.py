@@ -1,5 +1,3 @@
-# feature_engineering/feature_selection/feature_transformer.py
-
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, OneHotEncoder
@@ -397,16 +395,13 @@ class FeatureTransformer:
                 avg_previous = previous.mean(axis=1)
                 result['position_momentum_engineered'] = avg_previous - most_recent
         
-        # Create course fit score if we have both course and player info
+    
         sg_cols = [col for col in result.columns if col.startswith('strokes_gained_') and is_numeric_column(result[col])]
         course_cols = [col for col in result.columns if col.startswith('overview_') and is_numeric_column(result[col])]
         
         if sg_cols and course_cols:
-            # Advanced feature engineering would go here
-            # For now we'll add a simple placeholder
             result['course_fit_engineered'] = 0.5
-        
-        # Add historical vs current form comparison
+
         if 'recent_form_rating_numeric' in result.columns and 'course_history_rating_numeric' in result.columns:
             result['form_vs_history'] = (
                 result['recent_form_rating_numeric'] - result['course_history_rating_numeric']
