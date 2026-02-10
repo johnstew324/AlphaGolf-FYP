@@ -1,0 +1,70 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+eggs/
+*.whl
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.python-version
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & Model artifacts
+*.csv
+*.parquet
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.onnx
+*.model
+data/
+models/
+outputs/
+checkpoints/
+
+# MongoDB dumps
+dump/
+*.bson
+*.gz
+
+# Logs
+*.log
+logs/
+
+# Raw JSON data files
+alphagolf/raw_jsons/
+
+# Misc
+*.tmp
+*.bak
